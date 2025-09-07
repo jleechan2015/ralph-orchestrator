@@ -1,0 +1,13 @@
+{
+  "iteration_count": 1,
+  "start_time": 1757278593.9941158,
+  "runtime": 0.00025963783264160156,
+  "errors": [],
+  "checkpoints": [],
+  "config": {
+    "agent": "q",
+    "prompt_file": "TEST_INTEGRATION.md",
+    "max_iterations": 3,
+    "max_runtime": 14400
+  }
+}
