@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # Script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ORCHESTRATOR="$SCRIPT_DIR/ralph-orchestrator.py"
+ORCHESTRATOR="$SCRIPT_DIR/ralph_orchestrator.py"
 
 # Default values
 DEFAULT_AGENT="auto"
