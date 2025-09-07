@@ -2,7 +2,8 @@
 
 ## Immediate Tasks ✅ COMPLETED
 - [x] Test q chat integration
-- [x] Test claude integration
+- [x] Test claude integration  
+- [x] Fix Claude adapter for Claude Code CLI
 - [x] Create comprehensive integration tests
 - [x] Document project status
 - [x] Verify all features work as expected

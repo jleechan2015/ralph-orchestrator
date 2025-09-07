@@ -44,7 +44,7 @@ class ClaudeAdapter(ToolAdapter):
             # Get the prompt file path from kwargs if available
             prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
             
-            # Construct an effective prompt for Claude
+            # Construct an effective prompt for Claude Code
             # Tell it explicitly to edit the prompt file and add TASK_COMPLETE
             effective_prompt = (
                 f"Please complete the task described in the file '{prompt_file}'. "
@@ -54,18 +54,10 @@ class ClaudeAdapter(ToolAdapter):
                 f"Use your file editing tools to modify the file."
             )
             
-            # Build command
-            cmd = [self.command, "-p", effective_prompt]
-            
-            # Add optional parameters
-            if kwargs.get("model"):
-                cmd.extend(["--model", kwargs["model"]])
-            
-            # Always skip permissions for automation
-            cmd.append("--dangerously-skip-permissions")
-            
-            if kwargs.get("output_format"):
-                cmd.extend(["--output-format", kwargs["output_format"]])
+            # Build command for Claude Code CLI
+            # Use -p flag for non-interactive print mode
+            # Add --dangerously-skip-permissions for automation
+            cmd = [self.command, "-p", "--dangerously-skip-permissions", effective_prompt]
             
             # Execute command
             result = subprocess.run(
