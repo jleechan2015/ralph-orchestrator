@@ -188,12 +188,12 @@ class RalphOrchestrator:
             return False
         
         content = self.prompt_file.read_text()
-        # Look for uncommented TASK_COMPLETE marker on its own line or as a clear marker
+        # Look for TASK_COMPLETE marker in various forms
         for line in content.split('\n'):
             line_stripped = line.strip()
-            # Skip comment lines
-            if line_stripped.startswith('<!--') or line_stripped.startswith('#'):
-                continue
+            # Check for HTML comment style
+            if '<!-- TASK_COMPLETE -->' in line:
+                return True
             # Look for TASK_COMPLETE as a standalone marker, not in instructions
             if line_stripped == 'TASK_COMPLETE' or line_stripped == '**TASK_COMPLETE**':
                 return True
