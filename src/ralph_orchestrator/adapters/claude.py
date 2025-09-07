@@ -41,15 +41,28 @@ class ClaudeAdapter(ToolAdapter):
             )
         
         try:
+            # Get the prompt file path from kwargs if available
+            prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
+            
+            # Construct an effective prompt for Claude
+            # Tell it explicitly to edit the prompt file and add TASK_COMPLETE
+            effective_prompt = (
+                f"Please complete the task described in the file '{prompt_file}'. "
+                f"The current content is:\n\n{prompt}\n\n"
+                f"Edit the file '{prompt_file}' directly to add your solution. "
+                f"When you have completed the task, add 'TASK_COMPLETE' on its own line at the end of the file. "
+                f"Use your file editing tools to modify the file."
+            )
+            
             # Build command
-            cmd = [self.command, "-p", prompt]
+            cmd = [self.command, "-p", effective_prompt]
             
             # Add optional parameters
             if kwargs.get("model"):
                 cmd.extend(["--model", kwargs["model"]])
             
-            if kwargs.get("dangerously_skip_permissions"):
-                cmd.append("--dangerously-skip-permissions")
+            # Always skip permissions for automation
+            cmd.append("--dangerously-skip-permissions")
             
             if kwargs.get("output_format"):
                 cmd.extend(["--output-format", kwargs["output_format"]])
@@ -59,7 +72,8 @@ class ClaudeAdapter(ToolAdapter):
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=kwargs.get("timeout", 300)  # 5 minute default
+                timeout=kwargs.get("timeout", 300),  # 5 minute default
+                cwd=os.getcwd()  # Make sure we're in the right directory
             )
             
             if result.returncode == 0:
