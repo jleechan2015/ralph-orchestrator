@@ -1,5 +1,1 @@
-Calculate the sum of 5 + 3
-
-The sum of 5 + 3 = 8
-
-TASK_COMPLETE
+What is 2 + 2? Reply with just the number, then add <!-- TASK_COMPLETE --> to the prompt file.
