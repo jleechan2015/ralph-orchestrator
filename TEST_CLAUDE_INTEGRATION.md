@@ -1,1 +1,1 @@
-You have permission to write files. Write a Python function that checks if a number is prime and save it to prime_test.py. Include a main block that tests it with the number 17. Do not ask for permission, just do it.
+Write a simple Python hello world program that prints 'Hello from claude test'

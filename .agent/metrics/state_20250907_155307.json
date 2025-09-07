@@ -1,0 +1,13 @@
+{
+  "iteration_count": 1,
+  "start_time": 1757278387.4692283,
+  "runtime": 0.0002079010009765625,
+  "errors": [],
+  "checkpoints": [],
+  "config": {
+    "agent": "claude",
+    "prompt_file": "TEST_CLAUDE_ORCH.md",
+    "max_iterations": 3,
+    "max_runtime": 14400
+  }
+}
