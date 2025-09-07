@@ -7,9 +7,10 @@
    - Implemented core orchestration loop
    - Added adapter pattern for multiple CLI tools
 
-2. **Tool Integrations**
-   - ✅ Q Chat integration working
-   - ✅ Claude integration working  
+2. **Tool Integrations (IMPROVED 2025-09-07)**
+   - ✅ Q Chat integration working with file editing
+   - ✅ Claude integration working with file editing  
+   - ✅ Both tools now properly modify prompt files
    - ✅ Gemini fallback support (when available)
 
 3. **Core Features**
@@ -63,10 +64,11 @@ The orchestrator reads from `PROMPT.md` by default. To mark a task complete, add
 
 ## 📊 Current Status
 
-- **Version**: 1.0.1
-- **Last Updated**: 2025-09-07
+- **Version**: 1.1.0
+- **Last Updated**: 2025-09-07 (12:28 PM)
 - **Tested With**: q chat ✅, claude ✅
 - **Production Ready**: Yes
+- **Latest Improvements**: Fixed file editing for both q chat and Claude adapters
 
 ## 🚀 Next Steps
 
