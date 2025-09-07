@@ -15,8 +15,8 @@ class ClaudeAdapter(ToolAdapter):
     """Adapter for Claude CLI tool."""
     
     def __init__(self):
-        super().__init__("claude")
         self.command = "claude"
+        super().__init__("claude")
     
     def check_availability(self) -> bool:
         """Check if Claude CLI is available."""

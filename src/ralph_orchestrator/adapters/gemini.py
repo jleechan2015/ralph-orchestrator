@@ -13,8 +13,8 @@ class GeminiAdapter(ToolAdapter):
     """Adapter for Gemini CLI tool."""
     
     def __init__(self):
-        super().__init__("gemini")
         self.command = "gemini"
+        super().__init__("gemini")
     
     def check_availability(self) -> bool:
         """Check if Gemini CLI is available."""

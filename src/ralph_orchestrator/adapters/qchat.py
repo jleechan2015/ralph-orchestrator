@@ -13,8 +13,8 @@ class QChatAdapter(ToolAdapter):
     """Adapter for Q Chat CLI tool."""
     
     def __init__(self):
-        super().__init__("qchat")
         self.command = "q"
+        super().__init__("qchat")
     
     def check_availability(self) -> bool:
         """Check if q CLI is available."""
