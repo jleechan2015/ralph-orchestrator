@@ -1,0 +1,13 @@
+{
+  "iteration_count": 1,
+  "start_time": 1757277869.4660208,
+  "runtime": 0.0002052783966064453,
+  "errors": [],
+  "checkpoints": [],
+  "config": {
+    "agent": "claude",
+    "prompt_file": "TEST_CLAUDE_LIVE.md",
+    "max_iterations": 1,
+    "max_runtime": 14400
+  }
+}
