@@ -207,15 +207,21 @@ class RalphOrchestrator:
         # Get the current prompt
         prompt = self.context_manager.get_prompt()
         
-        # Try primary adapter
-        response = self.current_adapter.execute(prompt)
+        # Try primary adapter with prompt file path
+        response = self.current_adapter.execute(
+            prompt, 
+            prompt_file=str(self.prompt_file)
+        )
         
         if not response.success and len(self.adapters) > 1:
             # Try fallback adapters
             for name, adapter in self.adapters.items():
                 if adapter != self.current_adapter:
                     logger.info(f"Falling back to {name}")
-                    response = adapter.execute(prompt)
+                    response = adapter.execute(
+                        prompt,
+                        prompt_file=str(self.prompt_file)
+                    )
                     if response.success:
                         break
         

@@ -40,15 +40,35 @@ class QChatAdapter(ToolAdapter):
             )
         
         try:
-            # Build command - q chat expects the prompt as argument
-            cmd = [self.command, "chat", prompt]
+            # Get the prompt file path from kwargs if available
+            prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
+            
+            # Construct a more effective prompt for q chat
+            # Tell it explicitly to edit the prompt file and add TASK_COMPLETE
+            effective_prompt = (
+                f"Please read and complete the task described in the file '{prompt_file}'. "
+                f"The current content is:\n\n{prompt}\n\n"
+                f"Edit the file '{prompt_file}' directly to add your solution. "
+                f"When you have completed the task, add 'TASK_COMPLETE' on its own line at the end of the file."
+            )
+            
+            # Build command - q chat works with files by adding them to context
+            # We pass the prompt through stdin and tell it to trust file operations
+            cmd = [
+                self.command, 
+                "chat",
+                "--no-interactive",  # Don't expect user input
+                "--trust-all-tools",  # Allow all tool operations
+                effective_prompt  # Pass the enhanced prompt
+            ]
             
             # Execute command
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=kwargs.get("timeout", 300)  # 5 minute default
+                timeout=kwargs.get("timeout", 300),  # 5 minute default
+                cwd=os.getcwd()  # Make sure we're in the right directory
             )
             
             if result.returncode == 0:
