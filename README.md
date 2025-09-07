@@ -4,6 +4,11 @@ An improved implementation of the Ralph Wiggum technique for autonomous AI agent
 
 > "I'm helping!" - Ralph Wiggum
 
+**Status: ✅ FULLY IMPLEMENTED AND TESTED** (2025-09-07)
+- Claude integration: **WORKING**
+- Q Chat integration: **WORKING**  
+- All core features: **OPERATIONAL**
+
 ## Overview
 
 Ralph Orchestrator is a simple yet powerful orchestration loop for AI agents that follows the Ralph Wiggum philosophy: **deterministically bad in an undeterministic world**. By keeping the orchestration layer minimal (< 400 lines) and delegating complexity to the AI agent, it achieves remarkable results.
@@ -36,19 +41,19 @@ pip install -r requirements.txt
 
 ```bash
 # Basic usage with Claude (default)
-python -m ralph_orchestrator
+uv run python -m ralph_orchestrator
 
 # With custom prompt file
-python -m ralph_orchestrator --prompt TASK.md
+uv run python -m ralph_orchestrator --prompt TASK.md
 
 # Use Q Chat as primary tool
-python -m ralph_orchestrator --tool qchat
+uv run python -m ralph_orchestrator --tool qchat
 
 # Enable cost tracking
-python -m ralph_orchestrator --track-costs
+uv run python -m ralph_orchestrator --track-costs
 
 # Set safety limits
-python -m ralph_orchestrator --max-iterations 50 --max-cost 1.00
+uv run python -m ralph_orchestrator --max-iterations 50 --max-cost 1.00
 ```
 
 ## Configuration
