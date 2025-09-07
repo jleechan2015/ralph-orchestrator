@@ -121,7 +121,9 @@ class RalphOrchestrator:
         if agent == AgentType.CLAUDE:
             cmd = ["claude", "-p", f"@{prompt_file}"]
         elif agent == AgentType.Q:
-            cmd = ["q", "chat", "-f", str(prompt_file)]
+            # Q chat reads the prompt as input text
+            prompt_content = prompt_file.read_text()
+            cmd = ["q", "chat", "--no-interactive", "--trust-all-tools", prompt_content]
         elif agent == AgentType.GEMINI:
             cmd = ["gemini", "-p", f"@{prompt_file}"]
         else:
