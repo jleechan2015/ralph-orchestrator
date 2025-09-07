@@ -65,10 +65,11 @@ The orchestrator reads from `PROMPT.md` by default. To mark a task complete, add
 ## 📊 Current Status
 
 - **Version**: 1.1.0
-- **Last Updated**: 2025-09-07 (12:28 PM)
+- **Last Updated**: 2025-09-07 (2:10 PM)
 - **Tested With**: q chat ✅, claude ✅
 - **Production Ready**: Yes
 - **Latest Improvements**: Fixed file editing for both q chat and Claude adapters
+- **Repository**: git@github.com:mikeyobrien/ralph-orchestrator.git
 
 ## 🚀 Next Steps
 
