@@ -34,7 +34,7 @@ Based on the Ralph Wiggum technique by [Geoffrey Huntley](https://ghuntley.com/r
 
 ```bash
 # Clone the repository
-git clone https://github.com/mikeyobrien/ralph-orchestrator.git
+git clone https://github.com/yourusername/ralph-orchestrator.git
 cd ralph-orchestrator
 
 # Make scripts executable
