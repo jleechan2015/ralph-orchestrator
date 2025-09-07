@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Simple yet powerful AI agent orchestration using the Ralph Wiggum technique"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "typing-extensions>=4.0.0",
+]
 
 [project.scripts]
 ralph = "ralph_orchestrator.__main__:main"
