@@ -1,5 +1,5 @@
-Say 'Hello from Claude test' and nothing else
+What is 2 + 2?
 
-Hello from Claude test
+Return just the number.
 
 TASK_COMPLETE

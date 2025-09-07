@@ -1,3 +1,5 @@
 #!/usr/bin/env python3
-# Simple script to test Ralph Orchestrator functionality
-print("Hello from Ralph!")
+# ABOUTME: Simple script that prints a greeting message
+# ABOUTME: Used to test Ralph Orchestrator integration
+
+print("Hello, Ralph Orchestrator!")
