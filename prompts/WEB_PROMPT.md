@@ -143,6 +143,33 @@ Create a web-based monitoring interface for the Ralph Orchestrator system that p
   - Fixed authentication passwords in tests
   - Corrected endpoint URLs and response structures
 - All 58 web module tests now pass successfully
+
+### Iteration 10: API Rate Limiting Implementation ✅
+- Created rate limiting module at `src/ralph_orchestrator/web/rate_limit.py`
+  - Implemented token bucket algorithm for flexible rate limiting
+  - Different rate limits for different endpoint categories (auth, api, websocket, static, admin)
+  - Automatic IP blocking after multiple consecutive violations
+  - Support for X-Forwarded-For header for proxy environments
+- Rate limit configurations:
+  - Auth endpoints: 10 requests/minute (security-focused)
+  - API endpoints: 100 requests/10 seconds (standard usage)
+  - WebSocket: 10 connections/10 seconds (connection control)
+  - Static files: 200 requests/20 seconds (high throughput)
+  - Admin endpoints: 50 requests/5 seconds (privileged access)
+- Features:
+  - Per-IP rate limiting with token bucket algorithm
+  - Automatic token refill at configurable rates
+  - Temporary IP blocking for excessive violations
+  - Retry-After header in 429 responses
+  - Periodic cleanup of old rate limit buckets
+- Integration with web server:
+  - Added rate limiting middleware to FastAPI application
+  - Middleware automatically categorizes endpoints
+  - Cleanup task runs every 5 minutes to prevent memory growth
+- Comprehensive test coverage:
+  - 15 tests covering all rate limiting functionality
+  - Tests for token bucket, IP blocking, cleanup, and middleware
+  - All 73 web module tests passing
 - Created comprehensive web monitoring guide at `docs/guide/web-monitoring.md`
   - Complete feature documentation
   - Installation and setup instructions

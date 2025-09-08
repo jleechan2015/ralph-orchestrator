@@ -29,6 +29,7 @@ from .auth import (
     get_current_user, require_admin
 )
 from .database import DatabaseManager
+from .rate_limit import rate_limit_middleware, setup_rate_limit_cleanup, rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -290,8 +291,15 @@ class WebMonitor:
         async def lifespan(app: FastAPI):
             # Startup
             await self.monitor.start_monitoring()
+            # Start rate limit cleanup task
+            cleanup_task = await setup_rate_limit_cleanup()
             yield
             # Shutdown
+            cleanup_task.cancel()
+            try:
+                await cleanup_task
+            except asyncio.CancelledError:
+                pass
             await self.monitor.stop_monitoring()
         
         self.app = FastAPI(
@@ -309,6 +317,9 @@ class WebMonitor:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+        
+        # Add rate limiting middleware
+        self.app.middleware("http")(rate_limit_middleware)
         
         # Mount static files directory if it exists
         static_dir = Path(__file__).parent / "static"
