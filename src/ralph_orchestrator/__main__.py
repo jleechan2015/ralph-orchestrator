@@ -217,6 +217,18 @@ def generate_prompt_with_agent(rough_ideas: List[str], agent: str = "auto", outp
         bool: True if the prompt was successfully generated, False otherwise
     """
     
+    # Map shorthand to full agent names
+    agent_name_map = {
+        "c": "claude",
+        "g": "gemini", 
+        "q": "qchat",
+        "claude": "claude",
+        "gemini": "gemini",
+        "qchat": "qchat",
+        "auto": "auto"
+    }
+    agent = agent_name_map.get(agent, agent)
+    
     # Create a generation prompt for the AI
     ideas_text = "\n".join(f"- {idea}" for idea in rough_ideas)
     
@@ -280,7 +292,7 @@ IMPORTANT:
     # Try specified agent first
     if agent == "claude" or agent == "auto":
         try:
-            adapter = ClaudeAdapter("claude")
+            adapter = ClaudeAdapter()
             if adapter.available:
                 # Enable file tools for the agent to write PROMPT.md
                 result = adapter.execute(
@@ -298,7 +310,7 @@ IMPORTANT:
     
     if not success and (agent == "gemini" or agent == "auto"):
         try:
-            adapter = GeminiAdapter("gemini")
+            adapter = GeminiAdapter()
             if adapter.available:
                 result = adapter.execute(generation_prompt)
                 if result.success:
@@ -311,7 +323,7 @@ IMPORTANT:
     
     if not success and (agent == "qchat" or agent == "auto"):
         try:
-            adapter = QChatAdapter("qchat")
+            adapter = QChatAdapter()
             if adapter.available:
                 result = adapter.execute(generation_prompt)
                 if result.success:
@@ -393,9 +405,9 @@ Examples:
     )
     prompt_parser.add_argument(
         '-a', '--agent',
-        choices=['claude', 'gemini', 'qchat', 'auto'],
+        choices=['claude', 'c', 'gemini', 'g', 'qchat', 'q', 'auto'],
         default='auto',
-        help='AI agent to use for prompt generation (default: auto)'
+        help='AI agent to use: claude/c, gemini/g, qchat/q, auto (default: auto)'
     )
     
     # Run command (default) - add all the run options
@@ -569,11 +581,14 @@ Examples:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Map agent string to enum
+    # Map agent string to enum (including shorthand)
     agent_map = {
         "claude": AgentType.CLAUDE,
+        "c": AgentType.CLAUDE,
         "q": AgentType.Q,
+        "qchat": AgentType.Q,
         "gemini": AgentType.GEMINI,
+        "g": AgentType.GEMINI,
         "auto": AgentType.AUTO
     }
     
