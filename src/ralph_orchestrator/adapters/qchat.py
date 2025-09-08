@@ -12,16 +12,31 @@ import asyncio
 import select
 import time
 import fcntl
+import logging
 from typing import Optional, Dict, Any
 from contextlib import contextmanager
 from .base import ToolAdapter, ToolResponse
+from ..logging_config import RalphLogger
+
+# Get logger for this module
+logger = RalphLogger.get_logger(RalphLogger.ADAPTER_QCHAT)
 
 
 class QChatAdapter(ToolAdapter):
     """Adapter for Q Chat CLI tool."""
     
     def __init__(self):
-        self.command = "q"
+        # Get configuration from environment variables
+        self.command = os.getenv("RALPH_QCHAT_COMMAND", "q")
+        self.default_timeout = int(os.getenv("RALPH_QCHAT_TIMEOUT", "600"))
+        self.default_prompt_file = os.getenv("RALPH_QCHAT_PROMPT_FILE", "PROMPT.md")
+        self.trust_all_tools = os.getenv("RALPH_QCHAT_TRUST_TOOLS", "true").lower() == "true"
+        self.no_interactive = os.getenv("RALPH_QCHAT_NO_INTERACTIVE", "true").lower() == "true"
+        
+        # Initialize signal handler attributes before calling super()
+        self._original_sigint = None
+        self._original_sigterm = None
+        
         super().__init__("qchat")
         self.current_process = None
         self.shutdown_requested = False
@@ -29,23 +44,24 @@ class QChatAdapter(ToolAdapter):
         # Thread synchronization
         self._lock = threading.Lock()
         
-        # Store original signal handlers for cleanup
-        self._original_sigint = None
-        self._original_sigterm = None
-        
         # Register signal handlers to propagate shutdown to subprocess
         self._register_signal_handlers()
+        
+        logger.info(f"Q Chat adapter initialized - Command: {self.command}, "
+                   f"Default timeout: {self.default_timeout}s, "
+                   f"Trust tools: {self.trust_all_tools}")
     
     def _register_signal_handlers(self):
         """Register signal handlers and store originals."""
         self._original_sigint = signal.signal(signal.SIGINT, self._signal_handler)
         self._original_sigterm = signal.signal(signal.SIGTERM, self._signal_handler)
+        logger.debug("Signal handlers registered for SIGINT and SIGTERM")
     
     def _restore_signal_handlers(self):
         """Restore original signal handlers."""
-        if self._original_sigint is not None:
+        if hasattr(self, '_original_sigint') and self._original_sigint is not None:
             signal.signal(signal.SIGINT, self._original_sigint)
-        if self._original_sigterm is not None:
+        if hasattr(self, '_original_sigterm') and self._original_sigterm is not None:
             signal.signal(signal.SIGTERM, self._original_sigterm)
     
     def _signal_handler(self, signum, frame):
@@ -55,30 +71,34 @@ class QChatAdapter(ToolAdapter):
             process = self.current_process
         
         if process and process.poll() is None:
-            print(f"\nReceived signal {signum}, terminating q chat process...", file=sys.stderr)
+            logger.warning(f"Received signal {signum}, terminating q chat process...")
             try:
                 process.terminate()
                 process.wait(timeout=3)
+                logger.debug("Process terminated gracefully")
             except subprocess.TimeoutExpired:
-                print("Force killing q chat process...", file=sys.stderr)
+                logger.warning("Force killing q chat process...")
                 process.kill()
                 try:
                     process.wait(timeout=2)
                 except subprocess.TimeoutExpired:
-                    pass
+                    logger.error("Process may still be running after force kill")
     
     def check_availability(self) -> bool:
         """Check if q CLI is available."""
         try:
             # Try to check if q command exists
             result = subprocess.run(
-                ["which", "q"],
+                ["which", self.command],
                 capture_output=True,
                 timeout=5,
                 text=True
             )
-            return result.returncode == 0
-        except (subprocess.TimeoutExpired, FileNotFoundError):
+            available = result.returncode == 0
+            logger.debug(f"Q command '{self.command}' availability check: {available}")
+            return available
+        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+            logger.warning(f"Q command availability check failed: {e}")
             return False
     
     def execute(self, prompt: str, **kwargs) -> ToolResponse:
@@ -95,7 +115,9 @@ class QChatAdapter(ToolAdapter):
             verbose = kwargs.get('verbose', True)
             
             # Get the prompt file path from kwargs if available
-            prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
+            prompt_file = kwargs.get('prompt_file', self.default_prompt_file)
+            
+            logger.info(f"Executing Q chat - Prompt file: {prompt_file}, Verbose: {verbose}")
             
             # Enhance prompt with orchestration instructions
             enhanced_prompt = self._enhance_prompt_with_instructions(prompt)
@@ -110,19 +132,25 @@ class QChatAdapter(ToolAdapter):
             
             # Build command - q chat works with files by adding them to context
             # We pass the prompt through stdin and tell it to trust file operations
-            cmd = [
-                self.command, 
-                "chat",
-                "--no-interactive",  # Don't expect user input
-                "--trust-all-tools",  # Allow all tool operations
-                effective_prompt  # Pass the enhanced prompt
-            ]
+            cmd = [self.command, "chat"]
+            
+            if self.no_interactive:
+                cmd.append("--no-interactive")
+            
+            if self.trust_all_tools:
+                cmd.append("--trust-all-tools")
+            
+            cmd.append(effective_prompt)
+            
+            logger.debug(f"Command constructed: {' '.join(cmd)}")
+            
+            timeout = kwargs.get("timeout", self.default_timeout)
             
             if verbose:
-                print(f"Starting q chat command...", file=sys.stderr)
-                print(f"Command: {' '.join(cmd)}", file=sys.stderr)
-                print(f"Working directory: {os.getcwd()}", file=sys.stderr)
-                print(f"Timeout: {kwargs.get('timeout', 300)} seconds", file=sys.stderr)
+                logger.info(f"Starting q chat command...")
+                logger.info(f"Command: {' '.join(cmd)}")
+                logger.info(f"Working directory: {os.getcwd()}")
+                logger.info(f"Timeout: {timeout} seconds")
                 print("-" * 60, file=sys.stderr)
             
             # Use Popen for real-time output streaming
@@ -148,8 +176,8 @@ class QChatAdapter(ToolAdapter):
             stdout_lines = []
             stderr_lines = []
             
-            timeout = kwargs.get("timeout", 600)  # Increase default to 10 minutes for complex tasks
             start_time = time.time()
+            last_output_time = start_time
             
             while True:
                 # Check for shutdown signal first with lock
@@ -179,14 +207,20 @@ class QChatAdapter(ToolAdapter):
                 # Check for timeout
                 elapsed_time = time.time() - start_time
                 
-                # Log progress every 30 seconds when verbose
-                if verbose and int(elapsed_time) % 30 == 0 and int(elapsed_time) > 0:
-                    print(f"Q chat still running... elapsed: {elapsed_time:.1f}s / {timeout}s", file=sys.stderr)
-                    # Also check if the process seems stuck (no output for a while)
-                    if len(stdout_lines) == 0 and len(stderr_lines) == 0 and elapsed_time > 60:
-                        print("Warning: No output received yet, Q might be stuck", file=sys.stderr)
+                # Log progress every 30 seconds
+                if int(elapsed_time) % 30 == 0 and int(elapsed_time) > 0:
+                    logger.debug(f"Q chat still running... elapsed: {elapsed_time:.1f}s / {timeout}s")
+                    
+                    # Check if the process seems stuck (no output for a while)
+                    time_since_output = time.time() - last_output_time
+                    if time_since_output > 60:
+                        logger.warning(f"No output received for {time_since_output:.1f}s, Q might be stuck")
+                    
+                    if verbose:
+                        print(f"Q chat still running... elapsed: {elapsed_time:.1f}s / {timeout}s", file=sys.stderr)
                 
                 if elapsed_time > timeout:
+                    logger.warning(f"Command timed out after {elapsed_time:.2f} seconds")
                     if verbose:
                         print(f"Command timed out after {elapsed_time:.2f} seconds", file=sys.stderr)
                     
@@ -196,6 +230,7 @@ class QChatAdapter(ToolAdapter):
                         # Wait a bit for graceful termination
                         process.wait(timeout=3)
                     except subprocess.TimeoutExpired:
+                        logger.warning("Graceful termination failed, force killing process")
                         if verbose:
                             print("Graceful termination failed, force killing process", file=sys.stderr)
                         process.kill()
@@ -203,6 +238,7 @@ class QChatAdapter(ToolAdapter):
                         try:
                             process.wait(timeout=2)
                         except subprocess.TimeoutExpired:
+                            logger.error("Process may still be running after kill")
                             if verbose:
                                 print("Warning: Process may still be running after kill", file=sys.stderr)
                     
@@ -215,6 +251,7 @@ class QChatAdapter(ToolAdapter):
                         if remaining_stderr:
                             stderr_lines.append(remaining_stderr)
                     except Exception as e:
+                        logger.warning(f"Could not read remaining output after timeout: {e}")
                         if verbose:
                             print(f"Warning: Could not read remaining output after timeout: {e}", file=sys.stderr)
                     
@@ -252,6 +289,7 @@ class QChatAdapter(ToolAdapter):
                     stdout_data = self._read_available(process.stdout)
                     if stdout_data:
                         stdout_lines.append(stdout_data)
+                        last_output_time = time.time()
                         if verbose:
                             print(stdout_data, end='', file=sys.stderr)
                     
@@ -259,6 +297,7 @@ class QChatAdapter(ToolAdapter):
                     stderr_data = self._read_available(process.stderr)
                     if stderr_data:
                         stderr_lines.append(stderr_data)
+                        last_output_time = time.time()
                         if verbose:
                             print(stderr_data, end='', file=sys.stderr)
                     
@@ -272,10 +311,13 @@ class QChatAdapter(ToolAdapter):
             # Get final return code
             returncode = process.poll()
             
+            execution_time = time.time() - start_time
+            logger.info(f"Process completed - Return code: {returncode}, Execution time: {execution_time:.2f}s")
+            
             if verbose:
                 print("-" * 60, file=sys.stderr)
                 print(f"Process completed with return code: {returncode}", file=sys.stderr)
-                print(f"Total execution time: {time.time() - start_time:.2f} seconds", file=sys.stderr)
+                print(f"Total execution time: {execution_time:.2f} seconds", file=sys.stderr)
             
             # Clean up process reference with lock
             with self._lock:
@@ -286,23 +328,27 @@ class QChatAdapter(ToolAdapter):
             full_stderr = "".join(stderr_lines)
             
             if returncode == 0:
+                logger.debug(f"Q chat succeeded - Output length: {len(full_stdout)} chars")
                 return ToolResponse(
                     success=True,
                     output=full_stdout,
                     metadata={
                         "tool": "q chat",
-                        "execution_time": time.time() - start_time,
-                        "verbose": verbose
+                        "execution_time": execution_time,
+                        "verbose": verbose,
+                        "return_code": returncode
                     }
                 )
             else:
+                logger.error(f"Q chat failed - Return code: {returncode}, Error: {full_stderr[:200]}")
                 return ToolResponse(
                     success=False,
                     output=full_stdout,
-                    error=full_stderr or "q chat command failed"
+                    error=full_stderr or f"q chat command failed with code {returncode}"
                 )
                 
         except Exception as e:
+            logger.exception(f"Exception during Q chat execution: {str(e)}")
             if verbose:
                 print(f"Exception occurred: {str(e)}", file=sys.stderr)
             return ToolResponse(
@@ -351,8 +397,10 @@ class QChatAdapter(ToolAdapter):
         
         try:
             verbose = kwargs.get('verbose', True)
-            prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
-            timeout = kwargs.get('timeout', 600)
+            prompt_file = kwargs.get('prompt_file', self.default_prompt_file)
+            timeout = kwargs.get('timeout', self.default_timeout)
+            
+            logger.info(f"Executing Q chat async - Prompt file: {prompt_file}, Timeout: {timeout}s")
             
             # Enhance prompt with orchestration instructions
             enhanced_prompt = self._enhance_prompt_with_instructions(prompt)
@@ -373,6 +421,7 @@ class QChatAdapter(ToolAdapter):
                 effective_prompt
             ]
             
+            logger.debug(f"Starting async Q chat command: {' '.join(cmd)}")
             if verbose:
                 print(f"Starting q chat command (async)...", file=sys.stderr)
                 print(f"Command: {' '.join(cmd)}", file=sys.stderr)
@@ -408,16 +457,19 @@ class QChatAdapter(ToolAdapter):
                 
                 # Check return code
                 if process.returncode == 0:
+                    logger.debug(f"Async Q chat succeeded - Output length: {len(stdout)} chars")
                     return ToolResponse(
                         success=True,
                         output=stdout,
                         metadata={
                             "tool": "q chat",
                             "verbose": verbose,
-                            "async": True
+                            "async": True,
+                            "return_code": process.returncode
                         }
                     )
                 else:
+                    logger.error(f"Async Q chat failed - Return code: {process.returncode}")
                     return ToolResponse(
                         success=False,
                         output=stdout,
@@ -426,6 +478,7 @@ class QChatAdapter(ToolAdapter):
                 
             except asyncio.TimeoutError:
                 # Timeout occurred
+                logger.warning(f"Async q chat timed out after {timeout} seconds")
                 if verbose:
                     print(f"Async q chat timed out after {timeout} seconds", file=sys.stderr)
                 
@@ -452,6 +505,7 @@ class QChatAdapter(ToolAdapter):
                     self.current_process = None
                     
         except Exception as e:
+            logger.exception(f"Async execution error: {str(e)}")
             if kwargs.get('verbose'):
                 print(f"Async execution error: {str(e)}", file=sys.stderr)
             return ToolResponse(
@@ -472,8 +526,11 @@ class QChatAdapter(ToolAdapter):
         self._restore_signal_handlers()
         
         # Ensure any running process is terminated
-        with self._lock:
-            process = self.current_process
+        if hasattr(self, '_lock'):
+            with self._lock:
+                process = self.current_process if hasattr(self, 'current_process') else None
+        else:
+            process = getattr(self, 'current_process', None)
         
         if process:
             try:
