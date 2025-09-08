@@ -1,114 +1,327 @@
-# ABOUTME: CLI entry point for Ralph Orchestrator
-# ABOUTME: Provides command-line interface for running the orchestration loop
+#!/usr/bin/env python3
+# ABOUTME: CLI entry point for Ralph Orchestrator with all wrapper functionality
+# ABOUTME: Provides complete command-line interface including init, status, and clean commands
 
 """Command-line interface for Ralph Orchestrator."""
 
 import argparse
 import sys
 import os
+import json
+import shutil
 from pathlib import Path
 import logging
+import subprocess
+from typing import Optional
 
-from .orchestrator import RalphOrchestrator
+# Import the main orchestrator
+from .main import (
+    RalphOrchestrator, RalphConfig, AgentType,
+    DEFAULT_MAX_ITERATIONS, DEFAULT_MAX_RUNTIME, DEFAULT_PROMPT_FILE,
+    DEFAULT_CHECKPOINT_INTERVAL, DEFAULT_RETRY_DELAY, DEFAULT_MAX_TOKENS,
+    DEFAULT_MAX_COST, DEFAULT_CONTEXT_WINDOW, DEFAULT_CONTEXT_THRESHOLD,
+    DEFAULT_METRICS_INTERVAL, DEFAULT_MAX_PROMPT_SIZE
+)
+
+
+def init_project():
+    """Initialize a new Ralph project."""
+    print("Initializing Ralph project...")
+    
+    # Create directories
+    dirs = [
+        ".agent/prompts",
+        ".agent/checkpoints", 
+        ".agent/metrics",
+        ".agent/plans",
+        ".agent/memory"
+    ]
+    
+    for dir_path in dirs:
+        Path(dir_path).mkdir(parents=True, exist_ok=True)
+    
+    # Create default PROMPT.md if it doesn't exist
+    if not Path("PROMPT.md").exists():
+        with open("PROMPT.md", "w") as f:
+            f.write("""# Task: [Describe your task here]
+
+## Requirements
+- [ ] Requirement 1
+- [ ] Requirement 2
+
+## Success Criteria
+- All requirements met
+- Tests pass
+- Code is clean
+
+<!-- Add TASK_COMPLETE when done -->
+""")
+        print("Created PROMPT.md template")
+    
+    # Initialize git if not already
+    if not Path(".git").exists():
+        subprocess.run(["git", "init"], capture_output=True)
+        print("Initialized git repository")
+    
+    print("Ralph project initialized!")
+
+
+def show_status():
+    """Show current Ralph project status."""
+    print("Ralph Orchestrator Status")
+    print("=" * 25)
+    
+    # Check for PROMPT.md
+    if Path("PROMPT.md").exists():
+        print(f"Prompt: PROMPT.md exists")
+        with open("PROMPT.md", "r") as f:
+            content = f.read()
+            if "TASK_COMPLETE" in content:
+                print(f"Status: TASK COMPLETE")
+            else:
+                print(f"Status: IN PROGRESS")
+    else:
+        print(f"Prompt: PROMPT.md not found")
+    
+    # Check iterations from metrics
+    metrics_dir = Path(".agent/metrics")
+    if metrics_dir.exists():
+        state_files = sorted(metrics_dir.glob("state_*.json"))
+        if state_files:
+            latest_state = state_files[-1]
+            print(f"\nLatest metrics: {latest_state.name}")
+            try:
+                with open(latest_state, "r") as f:
+                    data = json.load(f)
+                    print(f"  Iterations: {data.get('iteration_count', 0)}")
+                    print(f"  Runtime: {data.get('runtime', 0):.1f}s")
+                    print(f"  Errors: {len(data.get('errors', []))}")
+            except Exception:
+                pass
+    
+    # Check git status
+    if Path(".git").exists():
+        print("\nGit checkpoints:")
+        result = subprocess.run(
+            ["git", "log", "--oneline", "-5"],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0 and result.stdout:
+            print(result.stdout.strip())
+        else:
+            print("No checkpoints yet")
+
+
+def clean_workspace():
+    """Clean Ralph workspace."""
+    print("Cleaning Ralph workspace...")
+    
+    # Ask about .agent directory
+    response = input("Remove .agent directory? (y/N) ")
+    if response.lower() == 'y':
+        if Path(".agent").exists():
+            shutil.rmtree(".agent")
+            print("Removed .agent directory")
+    
+    # Ask about git reset
+    if Path(".git").exists():
+        response = input("Reset git to last checkpoint? (y/N) ")
+        if response.lower() == 'y':
+            subprocess.run(["git", "reset", "--hard", "HEAD"], capture_output=True)
+            print("Reset to last checkpoint")
 
 
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Ralph Orchestrator - Simple AI agent orchestration",
+        prog="ralph",
+        description="Ralph Orchestrator - Put AI in a loop until done",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Commands:
+    ralph               Run the orchestrator (default)
+    ralph init          Initialize a new Ralph project  
+    ralph status        Show current Ralph status
+    ralph clean         Clean up agent workspace
+
 Examples:
-  # Basic usage with Claude (default)
-  ralph-orchestrator
-  
-  # Use Q Chat as primary tool
-  ralph-orchestrator --tool qchat
-  
-  # Enable cost tracking with limits
-  ralph-orchestrator --track-costs --max-cost 1.00
-  
-  # Custom prompt file and iterations
-  ralph-orchestrator --prompt TASK.md --max-iterations 50
-  
-  # Debug mode with verbose output
-  ralph-orchestrator --verbose --dry-run
-        """
+    ralph                           # Run with auto-detected agent
+    ralph -a claude                 # Use Claude agent
+    ralph -p task.md -i 50          # Custom prompt, max 50 iterations
+    ralph -t 3600 --dry-run         # Test mode with 1 hour timeout
+    ralph --max-cost 10.00          # Limit spending to $10
+    ralph init                      # Set up new project
+    ralph status                    # Check current progress
+    ralph clean                     # Clean agent workspace
+"""
     )
     
-    # Core arguments
-    parser.add_argument(
-        "--prompt",
-        default="PROMPT.md",
-        help="Path to the prompt file (default: PROMPT.md)"
-    )
+    # Add subcommands
+    subparsers = parser.add_subparsers(dest='command', help='Commands')
     
-    parser.add_argument(
-        "--tool",
-        choices=["claude", "qchat", "gemini"],
-        default=os.getenv("RALPH_PRIMARY_TOOL", "claude"),
-        help="Primary AI tool to use (default: claude)"
-    )
+    # Init command
+    subparsers.add_parser('init', help='Initialize a new Ralph project')
     
-    # Limits
-    parser.add_argument(
-        "--max-iterations",
-        type=int,
-        default=int(os.getenv("RALPH_MAX_ITERATIONS", "100")),
-        help="Maximum number of iterations (default: 100)"
-    )
+    # Status command
+    subparsers.add_parser('status', help='Show current Ralph status')
     
-    parser.add_argument(
-        "--max-runtime",
-        type=int,
-        default=int(os.getenv("RALPH_MAX_RUNTIME", "14400")),
-        help="Maximum runtime in seconds (default: 14400 = 4 hours)"
-    )
+    # Clean command
+    subparsers.add_parser('clean', help='Clean up agent workspace')
     
-    parser.add_argument(
-        "--max-cost",
-        type=float,
-        default=10.0,
-        help="Maximum allowed cost in dollars (default: 10.00)"
-    )
+    # Run command (default) - add all the run options
+    run_parser = subparsers.add_parser('run', help='Run the orchestrator')
     
-    # Cost tracking
-    parser.add_argument(
-        "--track-costs",
-        action="store_true",
-        help="Enable cost tracking and estimation"
-    )
-    
-    # Checkpointing
-    parser.add_argument(
-        "--checkpoint-interval",
-        type=int,
-        default=5,
-        help="Git checkpoint frequency (default: every 5 iterations)"
-    )
-    
-    parser.add_argument(
-        "--archive-dir",
-        default="./prompts/archive",
-        help="Directory for prompt archives (default: ./prompts/archive)"
-    )
-    
-    # Debugging
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable verbose output"
-    )
-    
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Perform a dry run without executing tools"
-    )
+    # Core arguments (also at root level for backward compatibility)
+    for p in [parser, run_parser]:
+        p.add_argument(
+            "-a", "--agent",
+            choices=["claude", "q", "gemini", "auto"],
+            default="auto",
+            help="AI agent to use (default: auto)"
+        )
+        
+        p.add_argument(
+            "-p", "--prompt",
+            default=DEFAULT_PROMPT_FILE,
+            help=f"Prompt file (default: {DEFAULT_PROMPT_FILE})"
+        )
+        
+        p.add_argument(
+            "-i", "--iterations", "--max-iterations",
+            type=int,
+            default=DEFAULT_MAX_ITERATIONS,
+            dest="max_iterations",
+            help=f"Maximum iterations (default: {DEFAULT_MAX_ITERATIONS})"
+        )
+        
+        p.add_argument(
+            "-t", "--time", "--max-runtime",
+            type=int,
+            default=DEFAULT_MAX_RUNTIME,
+            dest="max_runtime",
+            help=f"Maximum runtime in seconds (default: {DEFAULT_MAX_RUNTIME})"
+        )
+        
+        p.add_argument(
+            "-v", "--verbose",
+            action="store_true",
+            help="Enable verbose output"
+        )
+        
+        p.add_argument(
+            "-d", "--dry-run",
+            action="store_true",
+            help="Dry run mode (test without execution)"
+        )
+        
+        # Advanced options
+        p.add_argument(
+            "--max-tokens",
+            type=int,
+            default=DEFAULT_MAX_TOKENS,
+            help=f"Maximum total tokens (default: {DEFAULT_MAX_TOKENS})"
+        )
+        
+        p.add_argument(
+            "--max-cost",
+            type=float,
+            default=DEFAULT_MAX_COST,
+            help=f"Maximum cost in USD (default: {DEFAULT_MAX_COST})"
+        )
+        
+        p.add_argument(
+            "--context-window",
+            type=int,
+            default=DEFAULT_CONTEXT_WINDOW,
+            help=f"Context window size (default: {DEFAULT_CONTEXT_WINDOW})"
+        )
+        
+        p.add_argument(
+            "--context-threshold",
+            type=float,
+            default=DEFAULT_CONTEXT_THRESHOLD,
+            help=f"Context summarization threshold (default: {DEFAULT_CONTEXT_THRESHOLD})"
+        )
+        
+        p.add_argument(
+            "--checkpoint-interval",
+            type=int,
+            default=DEFAULT_CHECKPOINT_INTERVAL,
+            help=f"Git checkpoint interval (default: {DEFAULT_CHECKPOINT_INTERVAL})"
+        )
+        
+        p.add_argument(
+            "--retry-delay",
+            type=int,
+            default=DEFAULT_RETRY_DELAY,
+            help=f"Retry delay on errors (default: {DEFAULT_RETRY_DELAY})"
+        )
+        
+        p.add_argument(
+            "--metrics-interval",
+            type=int,
+            default=DEFAULT_METRICS_INTERVAL,
+            help=f"Metrics logging interval (default: {DEFAULT_METRICS_INTERVAL})"
+        )
+        
+        p.add_argument(
+            "--max-prompt-size",
+            type=int,
+            default=DEFAULT_MAX_PROMPT_SIZE,
+            help=f"Max prompt file size (default: {DEFAULT_MAX_PROMPT_SIZE})"
+        )
+        
+        p.add_argument(
+            "--no-git",
+            action="store_true",
+            help="Disable git checkpointing"
+        )
+        
+        p.add_argument(
+            "--no-archive",
+            action="store_true",
+            help="Disable prompt archiving"
+        )
+        
+        p.add_argument(
+            "--no-metrics",
+            action="store_true",
+            help="Disable metrics collection"
+        )
+        
+        p.add_argument(
+            "--allow-unsafe-paths",
+            action="store_true",
+            help="Allow potentially unsafe prompt paths"
+        )
+        
+        # Collect remaining arguments for agent
+        p.add_argument(
+            "agent_args",
+            nargs=argparse.REMAINDER,
+            help="Additional arguments to pass to the AI agent"
+        )
     
     # Parse arguments
     args = parser.parse_args()
     
+    # Handle commands
+    command = args.command if args.command else 'run'
+    
+    if command == 'init':
+        init_project()
+        sys.exit(0)
+    
+    if command == 'status':
+        show_status()
+        sys.exit(0)
+    
+    if command == 'clean':
+        clean_workspace()
+        sys.exit(0)
+    
+    # Run command (default)
     # Set up logging
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
@@ -116,10 +329,51 @@ Examples:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
+    # Map agent string to enum
+    agent_map = {
+        "claude": AgentType.CLAUDE,
+        "q": AgentType.Q,
+        "gemini": AgentType.GEMINI,
+        "auto": AgentType.AUTO
+    }
+    
+    # Create config
+    config = RalphConfig(
+        agent=agent_map[args.agent],
+        prompt_file=args.prompt,
+        max_iterations=args.max_iterations,
+        max_runtime=args.max_runtime,
+        checkpoint_interval=args.checkpoint_interval,
+        retry_delay=args.retry_delay,
+        archive_prompts=not args.no_archive,
+        git_checkpoint=not args.no_git,
+        verbose=args.verbose,
+        dry_run=args.dry_run,
+        max_tokens=args.max_tokens,
+        max_cost=args.max_cost,
+        context_window=args.context_window,
+        context_threshold=args.context_threshold,
+        metrics_interval=args.metrics_interval,
+        enable_metrics=not args.no_metrics,
+        max_prompt_size=args.max_prompt_size,
+        allow_unsafe_paths=args.allow_unsafe_paths,
+        agent_args=args.agent_args if hasattr(args, 'agent_args') else []
+    )
+    
+    if config.dry_run:
+        print("Dry run mode - no tools will be executed")
+        print(f"Configuration:")
+        print(f"  Prompt: {config.prompt_file}")
+        print(f"  Agent: {config.agent.value}")
+        print(f"  Max iterations: {config.max_iterations}")
+        print(f"  Max runtime: {config.max_runtime}s")
+        print(f"  Max cost: ${config.max_cost:.2f}")
+        sys.exit(0)
+    
     # Validate prompt file exists
-    prompt_path = Path(args.prompt)
+    prompt_path = Path(config.prompt_file)
     if not prompt_path.exists():
-        print(f"Error: Prompt file '{args.prompt}' not found")
+        print(f"Error: Prompt file '{config.prompt_file}' not found")
         print("\nPlease create a PROMPT.md file with your task description.")
         print("Example content:")
         print("---")
@@ -130,44 +384,23 @@ Examples:
         print("- Include basic routing")
         print("- Add tests")
         print("")
-        print("<!-- Add TASK_COMPLETE here when done -->")
+        print("<!-- Add TASK_COMPLETE when done -->")
         print("---")
         sys.exit(1)
     
-    if args.dry_run:
-        print("Dry run mode - no tools will be executed")
-        print(f"Configuration:")
-        print(f"  Prompt: {args.prompt}")
-        print(f"  Tool: {args.tool}")
-        print(f"  Max iterations: {args.max_iterations}")
-        print(f"  Max runtime: {args.max_runtime}s")
-        print(f"  Track costs: {args.track_costs}")
-        print(f"  Max cost: ${args.max_cost:.2f}")
-        sys.exit(0)
-    
     try:
-        # Create orchestrator
-        orchestrator = RalphOrchestrator(
-            prompt_file=args.prompt,
-            primary_tool=args.tool,
-            max_iterations=args.max_iterations,
-            max_runtime=args.max_runtime,
-            track_costs=args.track_costs,
-            max_cost=args.max_cost,
-            checkpoint_interval=args.checkpoint_interval,
-            archive_dir=args.archive_dir
-        )
-        
-        # Run the orchestration loop
-        print(f"Starting Ralph Orchestrator with {args.tool}")
-        print(f"Prompt: {args.prompt}")
-        print(f"Max iterations: {args.max_iterations}")
+        # Create and run orchestrator
+        print(f"Starting Ralph Orchestrator...")
+        print(f"Agent: {config.agent.value}")
+        print(f"Prompt: {config.prompt_file}")
+        print(f"Max iterations: {config.max_iterations}")
         print(f"Press Ctrl+C to stop gracefully")
-        print("-" * 50)
+        print("=" * 50)
         
+        orchestrator = RalphOrchestrator(config)
         orchestrator.run()
         
-        print("-" * 50)
+        print("=" * 50)
         print("Ralph Orchestrator completed successfully")
         
     except KeyboardInterrupt:
@@ -175,7 +408,7 @@ Examples:
         sys.exit(0)
     except Exception as e:
         print(f"Error: {e}")
-        if args.verbose:
+        if config.verbose:
             import traceback
             traceback.print_exc()
         sys.exit(1)

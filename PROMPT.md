@@ -1,9 +1,8 @@
-# Task: Simple Math Function
+# Task: Remove wrapper and make native uv tool 
 
-Write a Python function called `multiply` that takes two numbers and returns their product.
+Simplify this repo by removing the bash wrapper and creating a single entrypoint.
 
-Save it to a file called `multiply_result.py`.
+Acceptance Criteria
+- Docmentation Updated
+- E2E testsed
 
-When complete, add TASK_COMPLETE to this file.
-
-TASK_COMPLETE
