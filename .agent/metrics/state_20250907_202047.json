@@ -1,0 +1,59 @@
+{
+  "iteration_count": 3,
+  "start_time": 1757294396.7778387,
+  "runtime": 50.44582271575928,
+  "errors": [],
+  "checkpoints": [],
+  "token_metrics": {
+    "input_tokens": 96,
+    "output_tokens": 132,
+    "total_cost": 0.002268,
+    "total_tokens": 228,
+    "iterations": [
+      {
+        "timestamp": "2025-09-07T20:20:10.167292",
+        "input_tokens": 32,
+        "output_tokens": 48,
+        "cost": 0.0008160000000000001,
+        "cumulative_cost": 0.0008160000000000001
+      },
+      {
+        "timestamp": "2025-09-07T20:20:31.322999",
+        "input_tokens": 32,
+        "output_tokens": 57,
+        "cost": 0.000951,
+        "cumulative_cost": 0.0017670000000000001
+      },
+      {
+        "timestamp": "2025-09-07T20:20:46.120992",
+        "input_tokens": 32,
+        "output_tokens": 27,
+        "cost": 0.0005009999999999999,
+        "cumulative_cost": 0.002268
+      }
+    ]
+  },
+  "metrics_summary": {
+    "total_iterations": 3,
+    "successful_iterations": 3,
+    "success_rate": 1.0,
+    "total_duration_seconds": 47.14114236831665,
+    "average_duration_seconds": 15.713714122772217,
+    "total_tokens": 228,
+    "total_cost_usd": 0.002268,
+    "system_info": {
+      "platform": "Linux-6.16.4-3-cachyos-x86_64-with-glibc2.42",
+      "python_version": "3.13.7",
+      "cpu_count": 24
+    }
+  },
+  "config": {
+    "agent": "claude",
+    "prompt_file": ".agent/test-prompts/test_claude_simple.md",
+    "max_iterations": 3,
+    "max_runtime": 14400,
+    "max_tokens": 1000000,
+    "max_cost": 50.0,
+    "context_window": 200000
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "summary": {
+    "total_iterations": 3,
+    "successful_iterations": 3,
+    "success_rate": 1.0,
+    "total_duration_seconds": 47.14114236831665,
+    "average_duration_seconds": 15.713714122772217,
+    "total_tokens": 228,
+    "total_cost_usd": 0.002268,
+    "system_info": {
+      "platform": "Linux-6.16.4-3-cachyos-x86_64-with-glibc2.42",
+      "python_version": "3.13.7",
+      "cpu_count": 24
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "duration_seconds": 13.38900089263916,
+      "tokens_used": 80,
+      "cost_usd": 0.0008160000000000001,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:20:10.167474",
+        "cpu_percent": 0.0,
+        "memory": {
+          "percent": 54.3,
+          "used_gb": 18.609203338623047,
+          "available_gb": 13.927410125732422
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.34375,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.96564865112305
+        }
+      },
+      "uptime_seconds": 13.490110874176025
+    },
+    {
+      "iteration": 2,
+      "duration_seconds": 20.054898023605347,
+      "tokens_used": 89,
+      "cost_usd": 0.000951,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:20:31.323124",
+        "cpu_percent": 0.8,
+        "memory": {
+          "percent": 54.2,
+          "used_gb": 18.58393096923828,
+          "available_gb": 13.957168579101562
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.34765625,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.96564865112305
+        }
+      },
+      "uptime_seconds": 34.64576506614685
+    },
+    {
+      "iteration": 3,
+      "duration_seconds": 13.697243452072144,
+      "tokens_used": 59,
+      "cost_usd": 0.0005009999999999999,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:20:46.121093",
+        "cpu_percent": 0.0,
+        "memory": {
+          "percent": 54.0,
+          "used_gb": 18.531261444091797,
+          "available_gb": 14.01120376586914
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.3515625,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.96564865112305
+        }
+      },
+      "uptime_seconds": 49.443974018096924
+    }
+  ]
+}
