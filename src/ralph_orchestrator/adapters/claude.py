@@ -4,10 +4,8 @@
 """Claude SDK adapter for Ralph Orchestrator."""
 
 import asyncio
-import os
 import logging
-from typing import Optional, AsyncIterator
-from pathlib import Path
+from typing import Optional
 from .base import ToolAdapter, ToolResponse
 
 # Setup logging
@@ -30,6 +28,7 @@ class ClaudeAdapter(ToolAdapter):
         self._allowed_tools = None
         self._disallowed_tools = None
         self._enable_all_tools = False
+        self._enable_web_search = True  # Enable WebSearch by default
         self.verbose = verbose
     
     def check_availability(self) -> bool:
@@ -41,7 +40,8 @@ class ClaudeAdapter(ToolAdapter):
                   system_prompt: Optional[str] = None,
                   allowed_tools: Optional[list] = None,
                   disallowed_tools: Optional[list] = None,
-                  enable_all_tools: bool = False):
+                  enable_all_tools: bool = False,
+                  enable_web_search: bool = True):
         """Configure the Claude adapter with custom options.
         
         Args:
@@ -49,11 +49,17 @@ class ClaudeAdapter(ToolAdapter):
             allowed_tools: List of allowed tools for Claude to use (if None and enable_all_tools=True, all tools are enabled)
             disallowed_tools: List of disallowed tools
             enable_all_tools: If True and allowed_tools is None, enables all native Claude tools
+            enable_web_search: If True, explicitly enables WebSearch tool (default: True)
         """
         self._system_prompt = system_prompt
         self._allowed_tools = allowed_tools
         self._disallowed_tools = disallowed_tools
         self._enable_all_tools = enable_all_tools
+        self._enable_web_search = enable_web_search
+        
+        # If web search is enabled and we have an allowed tools list, add WebSearch to it
+        if enable_web_search and allowed_tools is not None and 'WebSearch' not in allowed_tools:
+            self._allowed_tools = allowed_tools + ['WebSearch']
     
     def execute(self, prompt: str, **kwargs) -> ToolResponse:
         """Execute Claude with the given prompt synchronously.
@@ -119,8 +125,13 @@ class ClaudeAdapter(ToolAdapter):
             # Set tool restrictions if provided
             # If enable_all_tools is True and no allowed_tools specified, don't set any restrictions
             enable_all_tools = kwargs.get('enable_all_tools', self._enable_all_tools)
+            enable_web_search = kwargs.get('enable_web_search', self._enable_web_search)
             allowed_tools = kwargs.get('allowed_tools', self._allowed_tools)
             disallowed_tools = kwargs.get('disallowed_tools', self._disallowed_tools)
+            
+            # Add WebSearch to allowed tools if web search is enabled
+            if enable_web_search and allowed_tools is not None and 'WebSearch' not in allowed_tools:
+                allowed_tools = allowed_tools + ['WebSearch']
             
             # Only set tool restrictions if we're not enabling all tools or if specific tools are provided
             if not enable_all_tools or allowed_tools:
@@ -133,16 +144,29 @@ class ClaudeAdapter(ToolAdapter):
             # If enable_all_tools is True and no allowed_tools, Claude will have access to all native tools
             if enable_all_tools and not allowed_tools:
                 if self.verbose:
-                    logger.info("Enabling all native Claude tools")
+                    logger.info("Enabling all native Claude tools (including WebSearch)")
+            
+            # Set permission mode - default to bypassPermissions for smoother operation
+            permission_mode = kwargs.get('permission_mode', 'bypassPermissions')
+            options_dict['permission_mode'] = permission_mode
+            if self.verbose:
+                logger.info(f"Permission mode: {permission_mode}")
+            
+            # Set current working directory to ensure files are created in the right place
+            import os
+            cwd = kwargs.get('cwd', os.getcwd())
+            options_dict['cwd'] = cwd
+            if self.verbose:
+                logger.info(f"Working directory: {cwd}")
             
             # Create options
             options = ClaudeCodeOptions(**options_dict)
             
             # Log request details if verbose
             if self.verbose:
-                logger.info(f"Claude SDK Request:")
+                logger.info("Claude SDK Request:")
                 logger.info(f"  Prompt length: {len(prompt)} characters")
-                logger.info(f"  System prompt: {system_prompt[:100]}..." if len(system_prompt) > 100 else f"  System prompt: {system_prompt}")
+                logger.info(f"  System prompt: {system_prompt}")
                 if allowed_tools:
                     logger.info(f"  Allowed tools: {allowed_tools}")
                 if disallowed_tools:
@@ -243,11 +267,73 @@ class ClaudeAdapter(ToolAdapter):
                     # User message (tool results being sent back)
                     if self.verbose:
                         logger.debug("User message (tool result) received")
+                        
+                        # Extract and display tool results from UserMessage
+                        if hasattr(message, 'content'):
+                            content = message.content
+                            # Handle both string and list content
+                            if isinstance(content, list):
+                                for content_item in content:
+                                    if hasattr(content_item, '__class__'):
+                                        item_type = content_item.__class__.__name__
+                                        if item_type == 'ToolResultBlock':
+                                            print("\n[TOOL RESULT]", flush=True)
+                                            tool_use_id = getattr(content_item, 'tool_use_id', 'unknown')
+                                            print(f"  For Tool ID: {tool_use_id[:12]}...", flush=True)
+                                            
+                                            result_content = getattr(content_item, 'content', None)
+                                            is_error = getattr(content_item, 'is_error', False)
+                                            
+                                            if is_error:
+                                                print("  Status: ERROR", flush=True)
+                                            else:
+                                                print("  Status: Success", flush=True)
+                                            
+                                            if result_content:
+                                                print("  Output:", flush=True)
+                                                # Handle different content types
+                                                if isinstance(result_content, str):
+                                                    # Truncate long outputs
+                                                    if len(result_content) > 500:
+                                                        print(f"    {result_content[:497]}...", flush=True)
+                                                    else:
+                                                        print(f"    {result_content}", flush=True)
+                                                elif isinstance(result_content, list):
+                                                    for item in result_content[:3]:  # Show first 3 items
+                                                        print(f"    - {item}", flush=True)
+                                                    if len(result_content) > 3:
+                                                        print(f"    ... and {len(result_content) - 3} more items", flush=True)
+                                            print(f"{'='*50}", flush=True)
                 
                 elif msg_type == 'ToolResultMessage':
                     # Tool result message
                     if self.verbose:
                         logger.debug("Tool result message received")
+                        
+                        # Extract and display content from ToolResultMessage
+                        if hasattr(message, 'tool_use_id'):
+                            print("\n[TOOL RESULT MESSAGE]", flush=True)
+                            print(f"  Tool ID: {message.tool_use_id[:12]}...", flush=True)
+                        
+                        if hasattr(message, 'content'):
+                            content = message.content
+                            if content:
+                                print("  Content:", flush=True)
+                                if isinstance(content, str):
+                                    if len(content) > 500:
+                                        print(f"    {content[:497]}...", flush=True)
+                                    else:
+                                        print(f"    {content}", flush=True)
+                                elif isinstance(content, list):
+                                    for item in content[:3]:
+                                        print(f"    - {item}", flush=True)
+                                    if len(content) > 3:
+                                        print(f"    ... and {len(content) - 3} more items", flush=True)
+                        
+                        if hasattr(message, 'is_error') and message.is_error:
+                            print("  Error: True", flush=True)
+                        
+                        print(f"{'='*50}", flush=True)
                 
                 elif hasattr(message, 'text'):
                     # Generic text message
@@ -285,7 +371,7 @@ class ClaudeAdapter(ToolAdapter):
             
             # Log response details if verbose
             if self.verbose:
-                logger.info(f"Claude SDK Response:")
+                logger.info("Claude SDK Response:")
                 logger.info(f"  Output length: {len(output)} characters")
                 logger.info(f"  Chunks received: {chunk_count}")
                 if tokens_used > 0:

@@ -39,31 +39,32 @@ chmod +x ralph ralph_orchestrator.py
 
 ### Execution Issues
 
-#### Task Not Completing
-**Problem**: Ralph runs maximum iterations without completing
+#### Task Running Too Long
+**Problem**: Ralph runs maximum iterations without achieving goals
 
 **Possible Causes**:
-1. Missing TASK_COMPLETE marker
-2. Unclear task description
-3. Agent unable to understand requirements
+1. Unclear or overly complex task description
+2. Agent not making progress towards objectives
+3. Task scope too large for iteration limits
 
 **Solutions**:
-1. Check if agent is adding TASK_COMPLETE:
+1. Check iteration progress and logs:
    ```bash
-   grep TASK_COMPLETE PROMPT.md
+   ralph status
    ```
 
-2. Simplify task description:
+2. Break down complex tasks:
    ```markdown
-   # Instead of vague:
-   Build something cool
+   # Instead of:
+   Build a complete web application
    
-   # Be specific:
-   Create a Python function that returns "Hello World"
+   # Try:
+   Create a Flask app with one endpoint that returns "Hello World"
    ```
 
-3. Try different agent:
+3. Increase iteration limits or try different agent:
    ```bash
+   ralph run --max-iterations 200
    ralph run --agent gemini
    ```
 

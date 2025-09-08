@@ -11,7 +11,7 @@ The simplest possible Ralph task:
 ```markdown
 # PROMPT.md
 Write a Python function that prints "Hello, World!"
-Save it to hello.py and add TASK_COMPLETE when done.
+Save it to hello.py. The orchestrator will continue iterations until completion.
 ```
 
 Run with:
@@ -31,7 +31,7 @@ Create a Python calculator module with:
 - Docstrings for all functions
 - Save to calculator.py
 
-When complete, add TASK_COMPLETE.
+The orchestrator will continue iterations until complete.
 ```
 
 ## Complete Examples
@@ -167,7 +167,7 @@ Task is complete when:
 1. All tests pass (run: pytest test_calculator.py)
 2. Code follows PEP 8 (run: flake8 calculator.py)
 3. Documentation is complete
-4. TASK_COMPLETE is added to this file
+4. All completion criteria are met
 ```
 
 ### 4. Provide Context
@@ -258,7 +258,7 @@ project/
 - All endpoints working
 - Tests passing
 - Documentation complete
-- TASK_COMPLETE added
+- All criteria completed
 ```
 
 ### Data Processing
@@ -285,7 +285,7 @@ project/
 - No errors during processing
 - Output validates against schema
 - Performance: < [X] seconds
-- TASK_COMPLETE added
+- All criteria completed
 ```
 
 ### CLI Tool
@@ -317,7 +317,7 @@ tool analyze --verbose
 - All commands working
 - Help text complete
 - Error handling robust
-- TASK_COMPLETE added
+- All criteria completed
 ```
 
 ## Learning from Examples

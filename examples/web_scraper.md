@@ -26,4 +26,4 @@ Requirements:
 
 Save as hn_scraper.py
 
-When complete, mark this task as TASK_COMPLETE
+The orchestrator will continue iterations until the scraper is fully implemented

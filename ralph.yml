@@ -32,7 +32,6 @@ adapters:
     enabled: true
     timeout: 300              # Timeout in seconds
     max_retries: 3            # Max retry attempts
-    args: []                  # Additional CLI arguments
     tool_permissions:         # Tool permissions for Claude
       allow_all: true         # Allow all tools without approval
   

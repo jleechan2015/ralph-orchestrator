@@ -81,11 +81,24 @@ When `enable_all_tools=True`, Claude has access to:
 - **File Operations**: Read, Write, Edit, MultiEdit
 - **Search**: Grep, Glob
 - **Execution**: Bash, BashOutput, KillBash
-- **Web**: WebFetch, WebSearch
+- **Web**: WebFetch, **WebSearch** (enabled by default)
 - **Documentation**: TodoWrite
 - **Notebooks**: NotebookEdit
 - **Planning**: Task, ExitPlanMode
 - **MCP Servers**: Various MCP tool integrations
+
+### WebSearch Support
+
+WebSearch is now enabled by default for the Claude adapter, allowing Claude to:
+- Search the web for current information
+- Access up-to-date data beyond its knowledge cutoff
+- Research topics and find recent developments
+- Gather information from multiple sources
+
+To explicitly enable WebSearch:
+```python
+adapter.configure(enable_web_search=True)  # Enabled by default
+```
 
 ## Security Notes
 

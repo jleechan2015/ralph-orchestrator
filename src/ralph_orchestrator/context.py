@@ -19,7 +19,7 @@ class ContextManager:
         self,
         prompt_file: Path,
         max_context_size: int = 8000,
-        cache_dir: Path = Path(".ralph/cache")
+        cache_dir: Path = Path(".agent/cache")
     ):
         """Initialize context manager.
         
@@ -57,8 +57,7 @@ class ContextManager:
         for line in lines:
             if line.startswith('#') or line.startswith('##'):
                 stable_lines.append(line)
-            elif 'TASK_COMPLETE' in line:
-                break
+            # No longer breaking on completion markers
             elif len(stable_lines) > 0 and line.strip() == '':
                 stable_lines.append(line)
             elif len(stable_lines) > 0:
@@ -130,7 +129,7 @@ class ContextManager:
         for line in lines:
             if any([
                 line.startswith('#'),
-                'TASK_COMPLETE' in line,
+                # Removed TASK_COMPLETE check
                 'TODO' in line,
                 'IMPORTANT' in line,
                 'ERROR' in line,

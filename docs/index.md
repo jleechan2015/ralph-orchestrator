@@ -52,7 +52,7 @@ Based on the technique by [Geoffrey Huntley](https://ghuntley.com/ralph/), this 
 cat > PROMPT.md << EOF
 Create a Python function that calculates the Fibonacci sequence.
 Include proper documentation and unit tests.
-When complete, add "TASK_COMPLETE" to this file.
+The orchestrator will iterate until the function is complete.
 EOF
 
 # 2. Run Ralph

@@ -90,7 +90,7 @@ CSV columns:
 - quantity, unit_price, total_price, discount
 - order_date, ship_date, region, payment_method
 
-<!-- TASK_COMPLETE will be added when done -->
+<!-- The orchestrator will continue iterations until limits are reached -->
 ```
 
 ## Running Ralph

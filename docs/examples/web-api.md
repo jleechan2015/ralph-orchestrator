@@ -58,7 +58,7 @@ todo-api/
 └── README.md        # Documentation
 ```
 
-<!-- TASK_COMPLETE will be added when done -->
+<!-- The orchestrator will continue iterations until all requirements are met -->
 ```
 
 ## Running Ralph
@@ -292,7 +292,7 @@ tail -f .agent/logs/ralph.log
 ### Final Iteration
 - Creates README
 - Adds requirements.txt
-- Marks TASK_COMPLETE
+- Meets all requirements
 
 ## Tips for Success
 

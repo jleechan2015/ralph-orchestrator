@@ -55,8 +55,6 @@ def init_project():
 - All requirements met
 - Tests pass
 - Code is clean
-
-<!-- Add TASK_COMPLETE when done -->
 """)
         print("Created PROMPT.md template")
     
@@ -102,12 +100,7 @@ def show_status():
     # Check for PROMPT.md
     if Path("PROMPT.md").exists():
         print(f"Prompt: PROMPT.md exists")
-        with open("PROMPT.md", "r") as f:
-            content = f.read()
-            if "TASK_COMPLETE" in content:
-                print(f"Status: TASK COMPLETE")
-            else:
-                print(f"Status: IN PROGRESS")
+        print(f"Status: IN PROGRESS")
     else:
         print(f"Prompt: PROMPT.md not found")
     
@@ -184,10 +177,39 @@ def generate_prompt(rough_ideas: List[str], output_file: str = "PROMPT.md", inte
         print("No ideas provided.")
         return
     
-    # Write to file
+    # Determine the project root and create prompts directory
+    import os
+    current_dir = Path(os.getcwd())
+    
+    # Parse the output file path
     output_path = Path(output_file)
+    
+    # If the output path is absolute or contains directory separators, use it as-is
+    # Otherwise, put it in the prompts directory
+    if output_path.is_absolute() or len(output_path.parts) > 1:
+        # User specified a full path or relative path with directories
+        # Convert relative paths to absolute based on current directory
+        if not output_path.is_absolute():
+            output_path = current_dir / output_path
+        # Create parent directories if needed
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        # Just a filename, put it in prompts directory
+        # Look for the project root (where .git is located)
+        project_root = current_dir
+        while project_root.parent != project_root:
+            if (project_root / '.git').exists():
+                break
+            project_root = project_root.parent
+        
+        # Create prompts directory in project root
+        prompts_dir = project_root / 'prompts'
+        prompts_dir.mkdir(exist_ok=True)
+        
+        # Update output path to be in prompts directory
+        output_path = prompts_dir / output_file
     if output_path.exists():
-        response = input(f"{output_file} already exists. Overwrite? (y/N) ")
+        response = input(f"{output_path} already exists. Overwrite? (y/N) ")
         if response.lower() != 'y':
             print("Cancelled.")
             return
@@ -197,13 +219,18 @@ def generate_prompt(rough_ideas: List[str], output_file: str = "PROMPT.md", inte
     try:
         # Use the specified agent to generate the prompt
         # The agent will create/edit the file directly
-        success = generate_prompt_with_agent(rough_ideas, agent, output_file)
+        success = generate_prompt_with_agent(rough_ideas, agent, str(output_path))
         
         if success and output_path.exists():
-            print(f"Generated structured prompt: {output_file}")
-            print(f"You can now run: ralph run -p {output_file}")
+            print(f"Generated structured prompt: {output_path}")
+            # Calculate relative path for the command suggestion
+            try:
+                rel_path = output_path.relative_to(current_dir)
+                print(f"You can now run: ralph run -p {rel_path}")
+            except ValueError:
+                print(f"You can now run: ralph run -p {output_path}")
         else:
-            print(f"Failed to generate prompt. Please check if {output_file} was created.")
+            print(f"Failed to generate prompt. Please check if {output_path} was created.")
         
     except Exception as e:
         print(f"Error generating prompt: {e}")
@@ -268,15 +295,12 @@ The file content should follow this EXACT format:
 - [Measurable success criterion 2]
 - [How to know when task is complete]
 
-<!-- Mark TASK_COMPLETE when all requirements are met -->
-
 IMPORTANT: 
 1. WRITE the content to {output_file} using your file writing tools
 2. Make requirements specific and actionable with checkboxes
 3. Include relevant technical specifications for the task type
 4. Make success criteria measurable and clear
-5. Always end with the TASK_COMPLETE comment
-6. The file should contain ONLY the structured markdown"""
+5. The file should contain ONLY the structured markdown"""
 
     # Try to use the specified agent or auto-detect
     success = False
@@ -294,11 +318,12 @@ IMPORTANT:
         try:
             adapter = ClaudeAdapter()
             if adapter.available:
-                # Enable file tools for the agent to write PROMPT.md
+                # Enable file tools and WebSearch for the agent to write PROMPT.md and research if needed
                 result = adapter.execute(
                     generation_prompt,
                     enable_all_tools=True,
-                    allowed_tools=['Write', 'Edit', 'MultiEdit']
+                    enable_web_search=True,
+                    allowed_tools=['Write', 'Edit', 'MultiEdit', 'WebSearch', 'Read', 'Grep']
                 )
                 if result.success:
                     success = True
@@ -653,8 +678,6 @@ Examples:
         print("- Use Python")
         print("- Include basic routing")
         print("- Add tests")
-        print("")
-        print("<!-- Add TASK_COMPLETE when done -->")
         print("---")
         sys.exit(1)
     
@@ -688,6 +711,14 @@ Examples:
             checkpoint_interval=config.checkpoint_interval,
             verbose=config.verbose
         )
+        
+        # Enable all tools for Claude adapter (including WebSearch)
+        if primary_tool == 'claude' and 'claude' in orchestrator.adapters:
+            claude_adapter = orchestrator.adapters['claude']
+            claude_adapter.configure(enable_all_tools=True, enable_web_search=True)
+            if config.verbose:
+                print("✓ Claude configured with all native tools including WebSearch")
+        
         orchestrator.run()
         
         print("=" * 50)

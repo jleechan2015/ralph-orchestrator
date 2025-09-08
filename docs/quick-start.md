@@ -61,7 +61,7 @@ Build a Python command-line todo list application with:
 
 Include proper error handling and a help command.
 
-When the implementation is complete and tested, add "TASK_COMPLETE" to this file.
+The orchestrator will continue iterations until all requirements are met or limits reached.
 ```
 
 ## Step 4: Run Ralph
@@ -95,7 +95,7 @@ You'll see output like:
 
 Ralph will continue iterating until one of these conditions is met:
 
-- ✅ The task is marked complete (TASK_COMPLETE found in prompt)
+- 🎯 All requirements appear to be satisfied
 - ⏱️ Maximum iterations reached (default: 100)
 - ⏰ Maximum runtime exceeded (default: 4 hours)
 - 💰 Token or cost limits reached
@@ -179,7 +179,7 @@ chmod +x ralph_orchestrator.py
 
 If your task runs indefinitely:
 - Check that your prompt includes clear completion criteria
-- Ensure the agent can add "TASK_COMPLETE" to the prompt file
+- Ensure the agent can modify files and work towards completion
 - Review iteration logs in `.agent/metrics/`
 
 ## Getting Help

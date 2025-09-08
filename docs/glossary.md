@@ -122,8 +122,8 @@
 **State Manager**
 : Component responsible for saving, loading, and updating execution state across iterations.
 
-**Success Marker**
-: The `TASK_COMPLETE` comment that signals task completion in PROMPT.md.
+**Success Criteria**
+: The measurable objectives defined in PROMPT.md that guide the orchestrator towards completion.
 
 ## T
 
@@ -131,7 +131,7 @@
 : The work to be accomplished, described in PROMPT.md with requirements and success criteria.
 
 **Task Complete**
-: State when `<!-- TASK_COMPLETE -->` marker is found in PROMPT.md, indicating successful completion.
+: State when the orchestrator reaches its maximum iterations, runtime, or cost limits, having worked towards the defined objectives.
 
 **Timeout**
 : Maximum time allowed for a single agent execution. Default is 300 seconds (5 minutes) per iteration.

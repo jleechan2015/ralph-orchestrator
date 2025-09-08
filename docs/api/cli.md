@@ -318,7 +318,7 @@ Describe your task here...
 ## Success Criteria
 - The task is complete when...
 
-<!-- Ralph will add TASK_COMPLETE when done -->
+<!-- Ralph will continue iterating until limits are reached -->
 """)
         print("  ✓ Created PROMPT.md template")
     
@@ -372,7 +372,8 @@ def cmd_status(self, args, config):
         # Check if task is complete
         with open('PROMPT.md') as f:
             content = f.read()
-        if 'TASK_COMPLETE' in content:
+        # Legacy completion check - no longer used
+        # if 'TASK_COMPLETE' in content:
             print("✓ Status: COMPLETE")
         else:
             print("⚠ Status: IN PROGRESS")

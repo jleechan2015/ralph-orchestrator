@@ -60,7 +60,7 @@ The main orchestration loop:
 3. **Agent execution**: Run the selected AI agent with the prompt
 4. **Response processing**: Capture and analyze the agent's output
 5. **Metrics collection**: Track tokens, costs, and performance
-6. **Completion check**: Look for the `TASK_COMPLETE` marker
+6. **Progress evaluation**: Monitor progress towards objectives
 7. **Checkpoint**: Save state at configured intervals
 8. **Repeat**: Continue until task is complete or limits are reached
 

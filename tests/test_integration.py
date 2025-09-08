@@ -340,7 +340,7 @@ class TestOrchestratorIntegration(unittest.TestCase):
         
         mock_process2 = MagicMock()
         mock_process2.poll.return_value = 0
-        mock_process2.stdout.read.return_value = "TASK_COMPLETE"
+        mock_process2.stdout.read.return_value = "Q Chat response iteration 2"
         mock_process2.stderr.read.return_value = ""
         
         mock_qchat_popen.side_effect = [mock_process1, mock_process2]
@@ -386,7 +386,7 @@ class TestOrchestratorIntegration(unittest.TestCase):
             MagicMock(returncode=0),  # Second iteration version check
             MagicMock(
                 returncode=0,
-                stdout="TASK_COMPLETE",
+                stdout="Claude response iteration 2",
                 stderr="Tokens: 20"
             )
         ]
@@ -415,7 +415,7 @@ class TestOrchestratorIntegration(unittest.TestCase):
             MagicMock(returncode=0),  # Second iteration
             MagicMock(
                 returncode=0,
-                stdout="TASK_COMPLETE",
+                stdout="Claude response iteration 2",
                 stderr="Tokens: 50"
             )
         ]
@@ -522,7 +522,7 @@ class TestEndToEndIntegration(unittest.TestCase):
             MagicMock(returncode=0),  # git add
             MagicMock(returncode=0),  # git commit
             
-            # Check for completion (mock reading file with TASK_COMPLETE)
+            # Orchestrator runs until iteration limit
         ]
         
         os.chdir(temp_dir)
@@ -537,8 +537,7 @@ class TestEndToEndIntegration(unittest.TestCase):
             checkpoint_interval=1
         )
         
-        # Update prompt to mark complete
-        prompt_file.write_text("TASK_COMPLETE")
+        # Orchestrator will run until max_iterations
         
         orchestrator.run()
         

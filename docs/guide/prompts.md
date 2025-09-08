@@ -23,7 +23,7 @@ The task is complete when:
 - Criterion 1 is met
 - Criterion 2 is met
 
-When finished, add "TASK_COMPLETE" to this file.
+The orchestrator will run until iteration/time/cost limits are reached.
 ```
 
 ### File Location
@@ -77,7 +77,7 @@ The task is complete when:
 [Additional guidance or hints]
 
 ---
-When the task is fully complete, add "TASK_COMPLETE" to this file.
+The orchestrator will continue iterations until limits are reached.
 ```
 
 ## Prompt Patterns
@@ -117,7 +117,7 @@ Create a RESTful API for user management with authentication.
 - [ ] API documentation generated
 - [ ] Authentication working
 
-When complete, add "TASK_COMPLETE" to this file.
+The orchestrator will run until completion criteria are met or limits reached.
 ```
 
 ### 2. Documentation Pattern
@@ -160,7 +160,7 @@ docs/
 - [ ] Reviewed for clarity
 - [ ] No broken links
 
-Add "TASK_COMPLETE" when finished.
+The orchestrator will continue iterations until limits are reached.
 ```
 
 ### 3. Data Analysis Pattern
@@ -195,7 +195,7 @@ Analyze Q4 sales data and generate insights report.
 - [ ] Insights documented
 - [ ] Code reproducible
 
-Mark "TASK_COMPLETE" when done.
+The orchestrator will run until limits are reached.
 ```
 
 ### 4. Debugging Pattern
@@ -232,7 +232,7 @@ Users report application crashes when uploading large files.
 - [ ] Tests passing
 - [ ] No regressions
 
-Add "TASK_COMPLETE" after verification.
+The orchestrator will continue verification iterations until limits are reached.
 ```
 
 ## Best Practices
@@ -350,7 +350,7 @@ Next: [planned next step]
 - [ ] CHECKPOINT_2: Core functionality working
 - [ ] CHECKPOINT_3: Tests passing
 - [ ] CHECKPOINT_4: Documentation complete
-- [ ] TASK_COMPLETE
+- [ ] All criteria verified
 ```
 
 ## Advanced Techniques
@@ -489,7 +489,7 @@ python ralph_orchestrator.py --verbose --prompt test.md
 Forgetting to specify when the task is done
 
 ✅ **Instead:**
-Always include clear completion criteria and the TASK_COMPLETE marker
+Always include clear completion criteria that the orchestrator can work towards
 
 ### 3. Overly Complex Prompts
 

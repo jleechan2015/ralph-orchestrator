@@ -63,9 +63,9 @@ docker run -v $(pwd):/workspace ralph-orchestrator
 ### How do I know when Ralph is done?
 
 Ralph stops when:
-1. It finds `TASK_COMPLETE` marker in PROMPT.md
-2. Maximum iterations are reached
-3. Maximum runtime is exceeded
+1. Maximum iterations are reached (default: 100)
+2. Maximum runtime is exceeded (default: 4 hours)
+3. Cost limits are reached (default: $50)
 4. Too many consecutive errors occur
 
 ### What should I put in PROMPT.md?
@@ -219,7 +219,7 @@ cd project2 && ralph run
     
 - name: Check completion
   run: |
-    grep TASK_COMPLETE PROMPT.md
+    ralph status
 ```
 
 ### Can Ralph modify files outside the project?

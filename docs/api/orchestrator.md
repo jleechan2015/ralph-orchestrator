@@ -473,8 +473,8 @@ TOKEN_COSTS = {
     "gemini": {"input": 0.5, "output": 1.5}
 }
 
-# Completion markers
-COMPLETION_MARKERS = ["TASK_COMPLETE", "TASK_DONE", "COMPLETE"]
+# Legacy completion markers (deprecated - orchestrator now uses iteration/cost/time limits)
+# COMPLETION_MARKERS = ["TASK_COMPLETE", "TASK_DONE", "COMPLETE"]
 
 # Security patterns
 DANGEROUS_PATTERNS = [

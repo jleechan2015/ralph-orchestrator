@@ -37,6 +37,7 @@ env/
 # Ralph specific
 .ralph/
 .agent/
+prompts/
 prompts/archive/
 ralph_*.log
 ralph_metrics_*.json

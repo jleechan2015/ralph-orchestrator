@@ -105,7 +105,7 @@ class RalphOrchestrator:
         
         # Create directories
         self.archive_dir.mkdir(parents=True, exist_ok=True)
-        Path(".ralph").mkdir(exist_ok=True)
+        Path(".agent").mkdir(exist_ok=True)
         
         logger.info(f"Ralph Orchestrator initialized with {primary_tool}")
     
@@ -178,10 +178,7 @@ class RalphOrchestrator:
                 logger.warning(f"Safety limit reached: {safety_check.reason}")
                 break
             
-            # Check for task completion
-            if self._is_task_complete():
-                logger.info("Task marked as complete")
-                break
+            # No longer checking for task completion - run until limits
             
             # Execute iteration
             self.metrics.iterations += 1
@@ -211,25 +208,6 @@ class RalphOrchestrator:
         # Final summary
         self._print_summary()
     
-    def _is_task_complete(self) -> bool:
-        """Check if the task is marked as complete."""
-        if not self.prompt_file.exists():
-            return False
-        
-        content = self.prompt_file.read_text()
-        # Look for TASK_COMPLETE marker in various forms
-        for line in content.split('\n'):
-            line_stripped = line.strip()
-            # Check for HTML comment style
-            if '<!-- TASK_COMPLETE -->' in line:
-                return True
-            # Look for TASK_COMPLETE as a standalone marker, not in instructions
-            if line_stripped == 'TASK_COMPLETE' or line_stripped == '**TASK_COMPLETE**':
-                return True
-            # Also check for markdown checkbox style
-            if line_stripped == '- [x] TASK_COMPLETE' or line_stripped == '[x] TASK_COMPLETE':
-                return True
-        return False
     
     def _execute_iteration(self) -> bool:
         """Execute a single iteration (sync wrapper)."""
@@ -395,7 +373,9 @@ class RalphOrchestrator:
                 logger.info(f"  {tool}: ${cost:.4f}")
         
         # Save metrics to file
-        metrics_file = Path(".ralph") / f"metrics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        metrics_dir = Path(".agent") / "metrics"
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+        metrics_file = metrics_dir / f"metrics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         metrics_data = {
             "iterations": self.metrics.iterations,
             "successful": self.metrics.successful_iterations,

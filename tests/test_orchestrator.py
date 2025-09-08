@@ -262,18 +262,7 @@ class TestRalphOrchestrator(unittest.TestCase):
         finally:
             Path(prompt_file).unlink()
     
-    def test_task_completion_check(self):
-        """Test checking for task completion."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
-            f.write("# Task\n\nDo something.\n\n<!-- TASK_COMPLETE -->")
-            prompt_file = Path(f.name)
-        
-        try:
-            with patch('ralph_orchestrator.orchestrator.ClaudeAdapter'):
-                orchestrator = RalphOrchestrator(prompt_file=str(prompt_file))
-                self.assertTrue(orchestrator._is_task_complete())
-        finally:
-            prompt_file.unlink()
+    # Task completion detection has been removed - orchestrator runs until limits
 
 
 if __name__ == "__main__":

@@ -23,20 +23,22 @@ def example_direct_adapter_usage():
         print("Claude SDK not available. Please install claude-code-sdk")
         return
     
-    # Example prompt that leverages multiple tools
+    # Example prompt that leverages multiple tools including WebSearch
     prompt = """
     Please help me analyze this codebase:
     1. Search for all Python files
     2. Find the main entry points
     3. Create a summary of the project structure
     4. Check if there are any tests
+    5. Use WebSearch to find best practices for the frameworks used
     """
     
-    # Execute with all tools enabled
+    # Execute with all tools enabled (WebSearch is enabled by default)
     response = adapter.execute(
         prompt,
         enable_all_tools=True,
-        system_prompt="You are a code analysis assistant with full tool access."
+        enable_web_search=True,  # Explicitly enable WebSearch (though it's on by default)
+        system_prompt="You are a code analysis assistant with full tool access including web search."
     )
     
     if response.success:
@@ -66,8 +68,8 @@ Please perform a comprehensive analysis of this codebase:
 
 Use all available tools to thoroughly explore the codebase.
 
-When complete, create a file called `ANALYSIS_REPORT.md` with your findings
-and add 'TASK_COMPLETE' to this file.
+When complete, create a file called `ANALYSIS_REPORT.md` with your findings.
+The orchestrator will continue until all analysis tasks are complete.
 """)
     
     # Create orchestrator with Claude

@@ -195,7 +195,7 @@ python ralph_orchestrator.py --version
 python ralph_orchestrator.py --list-agents
 
 # Run a test
-echo "Say hello and add TASK_COMPLETE" > test.md
+echo "Say hello (orchestrator will iterate until completion)" > test.md
 python ralph_orchestrator.py --prompt test.md --dry-run
 ```
 

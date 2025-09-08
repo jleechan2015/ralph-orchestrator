@@ -428,7 +428,7 @@ def process_agent_output(output: str) -> dict:
         'lines': output.splitlines(),
         'size': len(output),
         'has_error': 'error' in output.lower(),
-        'has_completion': 'TASK_COMPLETE' in output,
+        'has_completion': False,  # Legacy completion marker - no longer used
         'files_modified': extract_modified_files(output),
         'commands_run': extract_commands(output)
     }

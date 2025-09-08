@@ -125,6 +125,7 @@ IMPORTANT INSTRUCTIONS:
    - Each iteration is independent - focus on a single atomic change
    - The orchestrator will handle calling you again for the next task
    - Mark subtasks complete as you finish them
+   - You must commit your changes after each iteration, for checkpointing.
 2. Use the .agent/workspace/ directory for any temporary files or workspaces if not already instructed in the prompt.
 3. Follow this workflow for implementing features:
    - Explore: Research and understand the codebase
@@ -132,7 +133,6 @@ IMPORTANT INSTRUCTIONS:
    - Implement: Use Test-Driven Development (TDD) - write tests first, then code
    - Commit: Commit your changes with clear messages
 4. When you complete a subtask, document it in the prompt file so the next iteration knows what's done.
-5. When ALL tasks are complete, add 'TASK_COMPLETE' on its own line at the end of the file.
 
 ---
 ORIGINAL PROMPT:

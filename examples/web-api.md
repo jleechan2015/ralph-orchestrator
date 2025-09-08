@@ -32,4 +32,4 @@ Create a Flask REST API with user management capabilities.
 - Handles edge cases
 - Clear error messages
 
-<!-- Mark TASK_COMPLETE when all requirements are met -->
+<!-- The orchestrator will continue iterations until all requirements are met -->

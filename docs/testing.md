@@ -110,7 +110,7 @@ class TestRalphOrchestrator:
         assert orchestrator.check_task_complete(str(prompt_file)) is False
         
         # Add completion marker
-        prompt_file.write_text("Do something\n<!-- TASK_COMPLETE -->")
+        prompt_file.write_text("Do something\n<!-- Legacy marker removed -->")
         assert orchestrator.check_task_complete(str(prompt_file)) is True
     
     @patch('ralph_orchestrator.RalphOrchestrator.execute_agent')
@@ -195,7 +195,7 @@ class TestIntegration:
         prompt_file = test_dir / "PROMPT.md"
         prompt_file.write_text("""
         Create a Python function that returns 'Hello'
-        <!-- TASK_COMPLETE -->
+        <!-- Legacy marker removed -->
         """)
         
         config = {
@@ -315,7 +315,7 @@ Build a REST API with:
 
 COMPLETED_TASK = """
 Create a hello world function.
-<!-- TASK_COMPLETE -->
+<!-- Legacy marker removed -->
 """
 ```
 

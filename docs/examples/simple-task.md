@@ -105,7 +105,7 @@ todos.json:
 - [ ] Tests cover main functionality
 - [ ] README with usage instructions
 
-When complete, add "TASK_COMPLETE" to this file.
+The orchestrator will continue iterations until all criteria are met or limits reached.
 ```
 
 ## Running the Example

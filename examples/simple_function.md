@@ -10,4 +10,4 @@ Save the function in statistics_helper.py
 
 Add unit tests in test_statistics_helper.py
 
-When complete, mark this task as TASK_COMPLETE
+The orchestrator will continue iterations until the function is implemented and tested

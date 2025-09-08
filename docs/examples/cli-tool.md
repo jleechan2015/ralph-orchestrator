@@ -75,7 +75,7 @@ file-manager-cli/
 └── README.md
 ```
 
-<!-- TASK_COMPLETE will be added when done -->
+<!-- The orchestrator will continue iterations until all requirements are met -->
 ```
 
 ## Running Ralph

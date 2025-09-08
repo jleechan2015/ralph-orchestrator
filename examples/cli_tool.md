@@ -38,4 +38,4 @@ Save as file_organizer.py with supporting modules:
 
 Include requirements.txt with dependencies
 
-When complete, mark this task as TASK_COMPLETE
+The orchestrator will continue iterations until all components are implemented and tested

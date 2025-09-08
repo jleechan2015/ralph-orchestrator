@@ -44,14 +44,14 @@ Based on the Ralph Wiggum technique by [Geoffrey Huntley](https://ghuntley.com/r
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ralph-orchestrator.git
+git clone https://github.com/mikeyobrien/ralph-orchestrator.git
 cd ralph-orchestrator
 
 # Install with uv (recommended)
 uv sync
 
-# Or install with pip
-pip install -e .
+# Or install with pip (requires pip in virtual environment)
+python -m pip install -e .
 ```
 
 ## Prerequisites
@@ -94,50 +94,24 @@ This creates:
 ### 2. Configure Ralph (optional)
 Edit `ralph.yml` to customize settings:
 ```yaml
-# Core orchestrator settings
+# Ralph Orchestrator Configuration
 agent: auto                    # Which agent to use: claude, q, gemini, auto
 prompt_file: PROMPT.md         # Path to prompt file
 max_iterations: 100            # Maximum iterations before stopping
 max_runtime: 14400             # Maximum runtime in seconds (4 hours)
-checkpoint_interval: 5         # Git checkpoint every N iterations
-retry_delay: 2                 # Delay between retries in seconds
+verbose: false                 # Enable verbose output
 
-# Resource limits
-max_tokens: 1000000           # Maximum total tokens (1M)
-max_cost: 50.0                # Maximum cost in USD
-context_window: 200000        # Context window size in tokens
-context_threshold: 0.8        # Trigger summarization at 80% of context
-
-# Features
-archive_prompts: true         # Archive prompt history
-git_checkpoint: true          # Enable git checkpointing
-enable_metrics: true          # Enable metrics collection
-verbose: false                # Enable verbose output
-dry_run: false                # Test mode without execution
-
-# Adapter-specific configurations
+# Adapter configurations
 adapters:
   claude:
     enabled: true
     timeout: 300              # Timeout in seconds
-    max_retries: 3            # Max retry attempts
-    args: []                  # Additional CLI arguments
-    env:                      # Environment variables
-      ANTHROPIC_API_KEY: ""   # Set your API key here or in environment
-  
   q:
     enabled: true
     timeout: 300
-    max_retries: 3
-    args: []
-    env: {}
-  
   gemini:
     enabled: true
     timeout: 300
-    max_retries: 3
-    args: []
-    env: {}
 ```
 
 ### 3. Edit PROMPT.md with your task
@@ -149,7 +123,7 @@ Create a calculator module with:
 - Error handling for division by zero
 - Unit tests for all functions
 
-<!-- Ralph will add TASK_COMPLETE when done -->
+<!-- Ralph will continue iterating until limits are reached -->
 ```
 
 ### 4. Run Ralph
@@ -188,20 +162,32 @@ ralph run --dry-run
 ### Advanced Options
 
 ```bash
-ralph [OPTIONS]
+ralph [OPTIONS] [COMMAND]
 
-Options:
+Commands:
+  init                            Initialize a new Ralph project
+  status                          Show current Ralph status  
+  clean                           Clean up agent workspace
+  prompt                          Generate structured prompt from rough ideas
+  run                             Run the orchestrator (default)
+
+Core Options:
   -c, --config CONFIG             Configuration file (YAML format)
-  --agent {claude,q,gemini,auto}  AI agent to use (default: auto)
-  --prompt PROMPT                  Prompt file path (default: PROMPT.md)
-  --max-iterations N               Maximum iterations (default: 100)
-  --max-runtime SECONDS           Maximum runtime (default: 14400)
-  --checkpoint-interval N          Checkpoint every N iterations (default: 5)
-  --retry-delay SECONDS           Delay between retries (default: 2)
+  -a, --agent {claude,q,gemini,auto}  AI agent to use (default: auto)
+  -p, --prompt PROMPT             Prompt file path (default: PROMPT.md)
+  -i, --max-iterations N          Maximum iterations (default: 100)
+  -t, --max-runtime SECONDS      Maximum runtime (default: 14400)
+  -v, --verbose                   Enable verbose output
+  -d, --dry-run                   Test mode without executing agents
+
+Advanced Options:
+  --max-tokens MAX_TOKENS         Maximum total tokens (default: 1000000)
+  --max-cost MAX_COST             Maximum cost in USD (default: 50.0)
+  --checkpoint-interval N         Git checkpoint interval (default: 5)
+  --retry-delay SECONDS           Retry delay on errors (default: 2)
   --no-git                        Disable git checkpointing
   --no-archive                    Disable prompt archiving
-  --verbose                       Enable verbose output
-  --dry-run                       Test mode without executing agents
+  --no-metrics                    Disable metrics collection
 ```
 
 ## How It Works
@@ -239,9 +225,9 @@ Options:
    - Creates checkpoints at intervals
    - Handles errors with retry logic
 4. **Completion**: Stops when:
-   - Task marked complete (TASK_COMPLETE found)
    - Max iterations reached
    - Max runtime exceeded
+   - Cost limits reached
    - Too many consecutive errors
 
 ## Project Structure
@@ -251,7 +237,7 @@ ralph-orchestrator/
 ├── src/
 │   └── ralph_orchestrator/
 │       ├── __main__.py      # CLI entry point
-│       ├── main.py          # Main orchestrator loop
+│       ├── main.py          # Configuration and types
 │       ├── orchestrator.py  # Core orchestration logic
 │       ├── adapters/        # AI agent adapters
 │       │   ├── base.py      # Base adapter interface
@@ -264,9 +250,11 @@ ralph-orchestrator/
 ├── tests/                   # Test suite
 │   ├── test_orchestrator.py
 │   ├── test_adapters.py
+│   ├── test_config.py
 │   └── test_integration.py
 ├── docs/                    # Documentation
 ├── PROMPT.md               # Task description (user created)
+├── ralph.yml               # Configuration file (created by init)
 ├── pyproject.toml          # Project configuration
 ├── .agent/                 # CLI workspace (created by init)
 │   ├── prompts/            # Prompt workspace
@@ -425,8 +413,8 @@ which gemini
 
 ### Task Not Completing
 ```bash
-# Check if TASK_COMPLETE marker is being added
-grep TASK_COMPLETE PROMPT.md
+# Check iteration count and progress
+ralph status
 
 # Review agent errors
 cat .agent/metrics/state_*.json | jq '.errors'
