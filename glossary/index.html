@@ -2514,15 +2514,15 @@
 <dd>Current execution status including iteration count, errors, and metrics, saved in <code>.agent/metrics/state_latest.json</code>.</dd>
 <dt><strong>State Manager</strong></dt>
 <dd>Component responsible for saving, loading, and updating execution state across iterations.</dd>
-<dt><strong>Success Marker</strong></dt>
-<dd>The <code>TASK_COMPLETE</code> comment that signals task completion in PROMPT.md.</dd>
+<dt><strong>Success Criteria</strong></dt>
+<dd>The measurable objectives defined in PROMPT.md that guide the orchestrator towards completion.</dd>
 </dl>
 <h2 id="t">T<a class="headerlink" href="#t" title="Permanent link">&para;</a></h2>
 <dl>
 <dt><strong>Task</strong></dt>
 <dd>The work to be accomplished, described in PROMPT.md with requirements and success criteria.</dd>
 <dt><strong>Task Complete</strong></dt>
-<dd>State when <code>&lt;!-- TASK_COMPLETE --&gt;</code> marker is found in PROMPT.md, indicating successful completion.</dd>
+<dd>State when the orchestrator reaches its maximum iterations, runtime, or cost limits, having worked towards the defined objectives.</dd>
 <dt><strong>Timeout</strong></dt>
 <dd>Maximum time allowed for a single agent execution. Default is 300 seconds (5 minutes) per iteration.</dd>
 <dt><strong>Token</strong></dt>

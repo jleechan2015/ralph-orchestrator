@@ -109,6 +109,10 @@
          <lastmod>2025-09-08</lastmod>
     </url>
     <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/deployment/qchat-production/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
          <loc>https://mikeyobrien.github.io/ralph-orchestrator/examples/</loc>
          <lastmod>2025-09-08</lastmod>
     </url>
@@ -162,6 +166,10 @@
     </url>
     <url>
          <loc>https://mikeyobrien.github.io/ralph-orchestrator/guide/prompts/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/guide/websearch/</loc>
          <lastmod>2025-09-08</lastmod>
     </url>
 </urlset>

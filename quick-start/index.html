@@ -2395,7 +2395,7 @@
 </span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>Include proper error handling and a help command.
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>When the implementation is complete and tested, add &quot;TASK_COMPLETE&quot; to this file.
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>The orchestrator will continue iterations until all requirements are met or limits reached.
 </span></code></pre></div>
 <h2 id="step-4-run-ralph">Step 4: Run Ralph<a class="headerlink" href="#step-4-run-ralph" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Basic execution (auto-detects available agent)</span>
@@ -2420,7 +2420,7 @@
 <h2 id="what-happens-next">What Happens Next?<a class="headerlink" href="#what-happens-next" title="Permanent link">&para;</a></h2>
 <p>Ralph will continue iterating until one of these conditions is met:</p>
 <ul>
-<li>✅ The task is marked complete (TASK_COMPLETE found in prompt)</li>
+<li>🎯 All requirements appear to be satisfied</li>
 <li>⏱️ Maximum iterations reached (default: 100)</li>
 <li>⏰ Maximum runtime exceeded (default: 4 hours)</li>
 <li>💰 Token or cost limits reached</li>
@@ -2480,7 +2480,7 @@
 <h3 id="task-not-completing">Task Not Completing<a class="headerlink" href="#task-not-completing" title="Permanent link">&para;</a></h3>
 <p>If your task runs indefinitely:
 - Check that your prompt includes clear completion criteria
-- Ensure the agent can add "TASK_COMPLETE" to the prompt file
+- Ensure the agent can modify files and work towards completion
 - Review iteration logs in <code>.agent/metrics/</code></p>
 <h2 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
 <ul>

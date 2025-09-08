@@ -2534,29 +2534,30 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>ralph<span class="w"> </span>ralph_orchestrator.py
 </span></code></pre></div></p>
 <h3 id="execution-issues">Execution Issues<a class="headerlink" href="#execution-issues" title="Permanent link">&para;</a></h3>
-<h4 id="task-not-completing">Task Not Completing<a class="headerlink" href="#task-not-completing" title="Permanent link">&para;</a></h4>
-<p><strong>Problem</strong>: Ralph runs maximum iterations without completing</p>
+<h4 id="task-running-too-long">Task Running Too Long<a class="headerlink" href="#task-running-too-long" title="Permanent link">&para;</a></h4>
+<p><strong>Problem</strong>: Ralph runs maximum iterations without achieving goals</p>
 <p><strong>Possible Causes</strong>:
-1. Missing TASK_COMPLETE marker
-2. Unclear task description
-3. Agent unable to understand requirements</p>
+1. Unclear or overly complex task description
+2. Agent not making progress towards objectives
+3. Task scope too large for iteration limits</p>
 <p><strong>Solutions</strong>:
-1. Check if agent is adding TASK_COMPLETE:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>grep<span class="w"> </span>TASK_COMPLETE<span class="w"> </span>PROMPT.md
+1. Check iteration progress and logs:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ralph<span class="w"> </span>status
 </span></code></pre></div></p>
 <ol>
 <li>
-<p>Simplify task description:
-   <div class="language-markdown highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gh"># Instead of vague:</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Build something cool
+<p>Break down complex tasks:
+   <div class="language-markdown highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gh"># Instead of:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Build a complete web application
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="gh"># Be specific:</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>Create a Python function that returns &quot;Hello World&quot;
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="gh"># Try:</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>Create a Flask app with one endpoint that returns &quot;Hello World&quot;
 </span></code></pre></div></p>
 </li>
 <li>
-<p>Try different agent:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>gemini
+<p>Increase iteration limits or try different agent:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ralph<span class="w"> </span>run<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">200</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>ralph<span class="w"> </span>run<span class="w"> </span>--agent<span class="w"> </span>gemini
 </span></code></pre></div></p>
 </li>
 </ol>

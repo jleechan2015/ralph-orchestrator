@@ -2798,24 +2798,40 @@
 - Input: $3.00 per million tokens
 - Output: $15.00 per million tokens</p>
 <h3 id="q-chat">Q Chat<a class="headerlink" href="#q-chat" title="Permanent link">&para;</a></h3>
-<p>Q Chat is a cost-effective AI assistant suitable for many general tasks.</p>
+<p>Q Chat is a cost-effective AI assistant suitable for many general tasks, now with production-ready adapter implementation.</p>
 <p><strong>Strengths:</strong>
 - Good general-purpose capabilities
-- Fast response times
+- Fast response times with streaming support
 - Cost-effective for simple tasks
-- Reliable for straightforward operations</p>
+- Reliable for straightforward operations
+- Thread-safe concurrent message processing
+- Robust error handling and recovery
+- Graceful shutdown and resource cleanup</p>
 <p><strong>Best For:</strong>
 - Simple coding tasks
 - Basic documentation
 - Data processing
 - Quick prototypes
-- Budget-conscious operations</p>
+- Budget-conscious operations
+- High-concurrency workloads
+- Long-running batch processes</p>
 <p><strong>Installation:</strong>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>q-cli
 </span></code></pre></div></p>
 <p><strong>Usage:</strong>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>q
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Short form</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>-a<span class="w"> </span>q
 </span></code></pre></div></p>
+<p><strong>Production Features:</strong>
+- <strong>Message Queue</strong>: Thread-safe async message processing
+- <strong>Error Recovery</strong>: Automatic retry with exponential backoff
+- <strong>Signal Handling</strong>: Graceful shutdown on SIGINT/SIGTERM
+- <strong>Resource Management</strong>: Proper cleanup of processes and threads
+- <strong>Timeout Handling</strong>: Configurable timeouts with partial output preservation
+- <strong>Non-blocking I/O</strong>: Prevents deadlocks in pipe communication
+- <strong>Concurrent Processing</strong>: Handles multiple requests simultaneously</p>
 <p><strong>Cost:</strong>
 - Input: $0.50 per million tokens (estimated)
 - Output: $1.50 per million tokens (estimated)</p>
@@ -3008,15 +3024,39 @@
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span>--agent-args<span class="w"> </span><span class="s2">&quot;--context-length 50000&quot;</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="c1"># Production configuration with enhanced settings</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">  </span>--retry-delay<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">  </span>--checkpoint-interval<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">  </span>--verbose
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="c1"># High-concurrency configuration</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="w">  </span>--agent-args<span class="w"> </span><span class="s2">&quot;--async --timeout 300&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">200</span>
 </span></code></pre></div>
-<h3 id="gemini-configuration">Gemini Configuration<a class="headerlink" href="#gemini-configuration" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Standard Gemini usage</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>gemini
+<p><strong>Environment Variables:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Set Q chat timeout (default: 120 seconds)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">QCHAT_TIMEOUT</span><span class="o">=</span><span class="m">300</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># With specific model</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span>--agent<span class="w"> </span>gemini<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span>--agent-args<span class="w"> </span><span class="s2">&quot;--model gemini-pro&quot;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Enable verbose logging</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">QCHAT_VERBOSE</span><span class="o">=</span><span class="m">1</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Configure retry attempts</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="nb">export</span><span class="w"> </span><span class="nv">QCHAT_MAX_RETRIES</span><span class="o">=</span><span class="m">5</span>
+</span></code></pre></div></p>
+<h3 id="gemini-configuration">Gemini Configuration<a class="headerlink" href="#gemini-configuration" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Standard Gemini usage</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>gemini
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># With specific model</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span>--agent<span class="w"> </span>gemini<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span>--agent-args<span class="w"> </span><span class="s2">&quot;--model gemini-pro&quot;</span>
 </span></code></pre></div>
 <h2 id="agent-specific-features">Agent-Specific Features<a class="headerlink" href="#agent-specific-features" title="Permanent link">&para;</a></h2>
 <h3 id="claude-features">Claude Features<a class="headerlink" href="#claude-features" title="Permanent link">&para;</a></h3>
@@ -3026,147 +3066,177 @@
 <li><strong>Long Context</strong>: Handles up to 200K tokens</li>
 <li><strong>Nuanced Responses</strong>: Understands subtle requirements</li>
 </ul>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Leverage Claude&#39;s long context</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">200000</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span>--context-threshold<span class="w"> </span><span class="m">0</span>.9
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Leverage Claude&#39;s long context</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">200000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span>--context-threshold<span class="w"> </span><span class="m">0</span>.9
 </span></code></pre></div>
 <h3 id="q-chat-features">Q Chat Features<a class="headerlink" href="#q-chat-features" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Speed</strong>: Fast response times</li>
-<li><strong>Efficiency</strong>: Lower resource usage</li>
+<li><strong>Speed</strong>: Fast response times with streaming support</li>
+<li><strong>Efficiency</strong>: Lower resource usage with optimized memory management</li>
 <li><strong>Simplicity</strong>: Straightforward for basic tasks</li>
+<li><strong>Concurrency</strong>: Thread-safe operations for parallel processing</li>
+<li><strong>Reliability</strong>: Automatic error recovery and retry mechanisms</li>
+<li><strong>Production-Ready</strong>: Signal handling, graceful shutdown, resource cleanup</li>
 </ul>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Quick iterations with Q</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span>--retry-delay<span class="w"> </span><span class="m">1</span>
-</span></code></pre></div>
+<p><strong>Production Capabilities:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Quick iterations with Q</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span>--retry-delay<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="c1"># Async execution with timeout</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">  </span>--agent-args<span class="w"> </span><span class="s2">&quot;--async --timeout 300&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">  </span>--checkpoint-interval<span class="w"> </span><span class="m">10</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="c1"># Stress testing configuration</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">500</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">  </span>--metrics-interval<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w">  </span>--verbose
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="c1"># Long-running batch processing</span>
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="w">  </span>--checkpoint-interval<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="w">  </span>--max-cost<span class="w"> </span><span class="m">50</span>.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="w">  </span>--retry-delay<span class="w"> </span><span class="m">5</span>
+</span></code></pre></div></p>
+<p><strong>Monitoring and Logging:</strong>
+- Thread-safe logging for concurrent operations
+- Detailed error messages with stack traces
+- Performance metrics collection
+- Resource usage tracking
+- Message queue status monitoring</p>
 <h3 id="gemini-features">Gemini Features<a class="headerlink" href="#gemini-features" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Data Excellence</strong>: Superior at data tasks</li>
 <li><strong>Mathematical Prowess</strong>: Strong calculation abilities</li>
 <li><strong>Multi-language</strong>: Good support for various programming languages</li>
 </ul>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Data processing with Gemini</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>--agent<span class="w"> </span>gemini<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>--prompt<span class="w"> </span>data_analysis.md
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Data processing with Gemini</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>--agent<span class="w"> </span>gemini<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span>--prompt<span class="w"> </span>data_analysis.md
 </span></code></pre></div>
 <h2 id="multi-agent-strategies">Multi-Agent Strategies<a class="headerlink" href="#multi-agent-strategies" title="Permanent link">&para;</a></h2>
 <h3 id="sequential-processing">Sequential Processing<a class="headerlink" href="#sequential-processing" title="Permanent link">&para;</a></h3>
 <p>Process with different agents for different phases:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Phase 1: Research with Claude</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--prompt<span class="w"> </span>research.md
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Phase 2: Implementation with Q</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>q<span class="w"> </span>--prompt<span class="w"> </span>implement.md
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="c1"># Phase 3: Documentation with Claude</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--prompt<span class="w"> </span>document.md
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Phase 1: Research with Claude</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--prompt<span class="w"> </span>research.md
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Phase 2: Implementation with Q</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>q<span class="w"> </span>--prompt<span class="w"> </span>implement.md
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="c1"># Phase 3: Documentation with Claude</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--prompt<span class="w"> </span>document.md
 </span></code></pre></div>
 <h3 id="cost-optimization">Cost Optimization<a class="headerlink" href="#cost-optimization" title="Permanent link">&para;</a></h3>
 <p>Start with cheaper agents, escalate if needed:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Try Q first</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>q<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">2</span>.0
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># If unsuccessful, try Claude</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">20</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Try Q first</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>q<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">2</span>.0
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="c1"># If unsuccessful, try Claude</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">20</span>.0
 </span></code></pre></div>
 <h2 id="agent-performance-tuning">Agent Performance Tuning<a class="headerlink" href="#agent-performance-tuning" title="Permanent link">&para;</a></h2>
 <h3 id="claude-optimization">Claude Optimization<a class="headerlink" href="#claude-optimization" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Optimized for quality</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">50</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span>--checkpoint-interval<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">200000</span>
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="c1"># Optimized for speed</span>
-</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">  </span>--retry-delay<span class="w"> </span><span class="m">1</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Optimized for quality</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">50</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">  </span>--checkpoint-interval<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">200000</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="c1"># Optimized for speed</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="w">  </span>--retry-delay<span class="w"> </span><span class="m">1</span>
 </span></code></pre></div>
 <h3 id="q-chat-optimization">Q Chat Optimization<a class="headerlink" href="#q-chat-optimization" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Maximum efficiency</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">200</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">  </span>--checkpoint-interval<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">  </span>--metrics-interval<span class="w"> </span><span class="m">50</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Maximum efficiency</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">  </span>--agent<span class="w"> </span>q<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">200</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">  </span>--checkpoint-interval<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="w">  </span>--metrics-interval<span class="w"> </span><span class="m">50</span>
 </span></code></pre></div>
 <h3 id="gemini-optimization">Gemini Optimization<a class="headerlink" href="#gemini-optimization" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Data-heavy tasks</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">  </span>--agent<span class="w"> </span>gemini<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">128000</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">  </span>--max-tokens<span class="w"> </span><span class="m">500000</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Data-heavy tasks</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">  </span>--agent<span class="w"> </span>gemini<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">128000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">  </span>--max-tokens<span class="w"> </span><span class="m">500000</span>
 </span></code></pre></div>
 <h2 id="troubleshooting-agents">Troubleshooting Agents<a class="headerlink" href="#troubleshooting-agents" title="Permanent link">&para;</a></h2>
 <h3 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h3>
 <ol>
 <li>
 <p><strong>Agent Not Found</strong>
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Check installation</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>which<span class="w"> </span>claude<span class="w">  </span><span class="c1"># or q, gemini</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Use auto-detection</span>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto<span class="w"> </span>--dry-run
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># Check installation</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>which<span class="w"> </span>claude<span class="w">  </span><span class="c1"># or q, gemini</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="c1"># Use auto-detection</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto<span class="w"> </span>--dry-run
 </span></code></pre></div></p>
 </li>
 <li>
 <p><strong>Rate Limiting</strong>
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># Increase retry delay</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--retry-delay<span class="w"> </span><span class="m">10</span>
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Increase retry delay</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--retry-delay<span class="w"> </span><span class="m">10</span>
 </span></code></pre></div></p>
 </li>
 <li>
 <p><strong>Context Overflow</strong>
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Adjust context settings</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">100000</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">  </span>--context-threshold<span class="w"> </span><span class="m">0</span>.7
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Adjust context settings</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">  </span>--context-window<span class="w"> </span><span class="m">100000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">  </span>--context-threshold<span class="w"> </span><span class="m">0</span>.7
 </span></code></pre></div></p>
 </li>
 <li>
 <p><strong>Poor Output Quality</strong>
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Switch to higher-quality agent</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Switch to higher-quality agent</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude
 </span></code></pre></div></p>
 </li>
 </ol>
 <h3 id="agent-diagnostics">Agent Diagnostics<a class="headerlink" href="#agent-diagnostics" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Test agent availability</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto<span class="w"> </span>--dry-run<span class="w"> </span>--verbose
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="c1"># Check agent performance</span>
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="w">  </span>--verbose<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">  </span>--metrics-interval<span class="w"> </span><span class="m">1</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Test agent availability</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto<span class="w"> </span>--dry-run<span class="w"> </span>--verbose
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1"># Check agent performance</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">  </span>--max-iterations<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="w">  </span>--verbose<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="w">  </span>--metrics-interval<span class="w"> </span><span class="m">1</span>
 </span></code></pre></div>
 <h2 id="cost-management-by-agent">Cost Management by Agent<a class="headerlink" href="#cost-management-by-agent" title="Permanent link">&para;</a></h2>
 <h3 id="budget-allocation">Budget Allocation<a class="headerlink" href="#budget-allocation" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Low budget: Use Q</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>q<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">5</span>.0
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1"># Medium budget: Use Gemini</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>gemini<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">25</span>.0
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="c1"># High budget: Use Claude</span>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">100</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Low budget: Use Q</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>q<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">5</span>.0
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># Medium budget: Use Gemini</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>gemini<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">25</span>.0
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="c1"># High budget: Use Claude</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>claude<span class="w"> </span>--max-cost<span class="w"> </span><span class="m">100</span>.0
 </span></code></pre></div>
 <h3 id="cost-tracking">Cost Tracking<a class="headerlink" href="#cost-tracking" title="Permanent link">&para;</a></h3>
 <p>Monitor costs per agent:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Enable detailed metrics</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">  </span>--metrics-interval<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="w">  </span>--verbose
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># Enable detailed metrics</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="w">  </span>--agent<span class="w"> </span>claude<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="w">  </span>--metrics-interval<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="w">  </span>--verbose
 </span></code></pre></div>
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <h3 id="1-match-agent-to-task">1. Match Agent to Task<a class="headerlink" href="#1-match-agent-to-task" title="Permanent link">&para;</a></h3>
@@ -3177,15 +3247,15 @@
 </ul>
 <h3 id="2-start-small">2. Start Small<a class="headerlink" href="#2-start-small" title="Permanent link">&para;</a></h3>
 <p>Test with few iterations first:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">5</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">5</span>
 </span></code></pre></div>
 <h3 id="3-monitor-performance">3. Monitor Performance<a class="headerlink" href="#3-monitor-performance" title="Permanent link">&para;</a></h3>
 <p>Track metrics for optimization:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--metrics-interval<span class="w"> </span><span class="m">5</span><span class="w"> </span>--verbose
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--metrics-interval<span class="w"> </span><span class="m">5</span><span class="w"> </span>--verbose
 </span></code></pre></div>
 <h3 id="4-use-auto-detection">4. Use Auto-Detection<a class="headerlink" href="#4-use-auto-detection" title="Permanent link">&para;</a></h3>
 <p>Let the system choose when unsure:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--agent<span class="w"> </span>auto
 </span></code></pre></div>
 <h3 id="5-consider-costs">5. Consider Costs<a class="headerlink" href="#5-consider-costs" title="Permanent link">&para;</a></h3>
 <p>Balance quality with budget:</p>

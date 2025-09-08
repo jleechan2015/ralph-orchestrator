@@ -2361,7 +2361,7 @@
 <p>The simplest possible Ralph task:</p>
 <div class="language-markdown highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gh"># PROMPT.md</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Write a Python function that prints &quot;Hello, World!&quot;
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Save it to hello.py and add TASK_COMPLETE when done.
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Save it to hello.py. The orchestrator will continue iterations until completion.
 </span></code></pre></div>
 <p>Run with:
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>ralph_orchestrator.py<span class="w"> </span>--prompt<span class="w"> </span>PROMPT.md<span class="w"> </span>--max-iterations<span class="w"> </span><span class="m">5</span>
@@ -2375,7 +2375,7 @@
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">-</span><span class="w"> </span>Docstrings for all functions
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">-</span><span class="w"> </span>Save to calculator.py
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>When complete, add TASK_COMPLETE.
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>The orchestrator will continue iterations until complete.
 </span></code></pre></div>
 <h2 id="complete-examples">Complete Examples<a class="headerlink" href="#complete-examples" title="Permanent link">&para;</a></h2>
 <p>Explore our detailed example guides:</p>
@@ -2465,7 +2465,7 @@
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">1.</span> All tests pass (run: pytest test_calculator.py)
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">2.</span> Code follows PEP 8 (run: flake8 calculator.py)
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">3.</span> Documentation is complete
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">4.</span> TASK_COMPLETE is added to this file
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">4.</span> All completion criteria are met
 </span></code></pre></div>
 <h3 id="4-provide-context">4. Provide Context<a class="headerlink" href="#4-provide-context" title="Permanent link">&para;</a></h3>
 <p>Include relevant information:</p>
@@ -2533,7 +2533,7 @@ project/
 </span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>- All endpoints working
 </span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>- Tests passing
 </span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>- Documentation complete
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>- TASK_COMPLETE added
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>- All criteria completed
 </span></code></pre></div></p>
 <h3 id="data-processing_1">Data Processing<a class="headerlink" href="#data-processing_1" title="Permanent link">&para;</a></h3>
 <div class="language-markdown highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="gh"># Task: Process [Data Description]</span>
@@ -2557,7 +2557,7 @@ project/
 </span><span id="__span-20-19"><a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a><span class="k">-</span><span class="w"> </span>No errors during processing
 </span><span id="__span-20-20"><a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a><span class="k">-</span><span class="w"> </span>Output validates against schema
 </span><span id="__span-20-21"><a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a><span class="k">-</span><span class="w"> </span>Performance: &lt; [X] seconds
-</span><span id="__span-20-22"><a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a><span class="k">-</span><span class="w"> </span>TASK_COMPLETE added
+</span><span id="__span-20-22"><a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a><span class="k">-</span><span class="w"> </span>All criteria completed
 </span></code></pre></div>
 <h3 id="cli-tool_1">CLI Tool<a class="headerlink" href="#cli-tool_1" title="Permanent link">&para;</a></h3>
 <div class="language-markdown highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="gh"># Task: Build [Tool Name] CLI</span>
@@ -2586,7 +2586,7 @@ project/
 <li>All commands working</li>
 <li>Help text complete</li>
 <li>Error handling robust</li>
-<li>TASK_COMPLETE added
+<li>All criteria completed
 ```</li>
 </ul>
 <h2 id="learning-from-examples">Learning from Examples<a class="headerlink" href="#learning-from-examples" title="Permanent link">&para;</a></h2>
