@@ -14,9 +14,10 @@ import logging
 import subprocess
 from typing import Optional
 
-# Import the main orchestrator
+# Import the proper orchestrator with adapter support
+from .orchestrator import RalphOrchestrator
 from .main import (
-    RalphOrchestrator, RalphConfig, AgentType,
+    RalphConfig, AgentType,
     DEFAULT_MAX_ITERATIONS, DEFAULT_MAX_RUNTIME, DEFAULT_PROMPT_FILE,
     DEFAULT_CHECKPOINT_INTERVAL, DEFAULT_RETRY_DELAY, DEFAULT_MAX_TOKENS,
     DEFAULT_MAX_COST, DEFAULT_CONTEXT_WINDOW, DEFAULT_CONTEXT_THRESHOLD,
@@ -58,12 +59,38 @@ def init_project():
 """)
         print("Created PROMPT.md template")
     
+    # Create default ralph.yml if it doesn't exist
+    if not Path("ralph.yml").exists():
+        with open("ralph.yml", "w") as f:
+            f.write("""# Ralph Orchestrator Configuration
+agent: auto
+prompt_file: PROMPT.md
+max_iterations: 100
+max_runtime: 14400
+verbose: false
+
+# Adapter configurations
+adapters:
+  claude:
+    enabled: true
+    timeout: 300
+  q:
+    enabled: true
+    timeout: 300
+  gemini:
+    enabled: true
+    timeout: 300
+""")
+        print("Created ralph.yml configuration")
+    
     # Initialize git if not already
     if not Path(".git").exists():
         subprocess.run(["git", "init"], capture_output=True)
         print("Initialized git repository")
     
     print("Ralph project initialized!")
+    print("Edit ralph.yml to customize configuration")
+    print("Edit PROMPT.md to define your task")
 
 
 def show_status():
@@ -145,8 +172,13 @@ Commands:
     ralph status        Show current Ralph status
     ralph clean         Clean up agent workspace
 
+Configuration:
+    Use -c/--config to load settings from a YAML file.
+    CLI arguments override config file settings.
+
 Examples:
     ralph                           # Run with auto-detected agent
+    ralph -c ralph.yml              # Use configuration file
     ralph -a claude                 # Use Claude agent
     ralph -p task.md -i 50          # Custom prompt, max 50 iterations
     ralph -t 3600 --dry-run         # Test mode with 1 hour timeout
@@ -174,6 +206,11 @@ Examples:
     
     # Core arguments (also at root level for backward compatibility)
     for p in [parser, run_parser]:
+        p.add_argument(
+            "-c", "--config",
+            help="Configuration file (YAML format)"
+        )
+        
         p.add_argument(
             "-a", "--agent",
             choices=["claude", "q", "gemini", "auto"],
@@ -337,28 +374,43 @@ Examples:
         "auto": AgentType.AUTO
     }
     
-    # Create config
-    config = RalphConfig(
-        agent=agent_map[args.agent],
-        prompt_file=args.prompt,
-        max_iterations=args.max_iterations,
-        max_runtime=args.max_runtime,
-        checkpoint_interval=args.checkpoint_interval,
-        retry_delay=args.retry_delay,
-        archive_prompts=not args.no_archive,
-        git_checkpoint=not args.no_git,
-        verbose=args.verbose,
-        dry_run=args.dry_run,
-        max_tokens=args.max_tokens,
-        max_cost=args.max_cost,
-        context_window=args.context_window,
-        context_threshold=args.context_threshold,
-        metrics_interval=args.metrics_interval,
-        enable_metrics=not args.no_metrics,
-        max_prompt_size=args.max_prompt_size,
-        allow_unsafe_paths=args.allow_unsafe_paths,
-        agent_args=args.agent_args if hasattr(args, 'agent_args') else []
-    )
+    # Create config - load from YAML if provided, otherwise use CLI args
+    if args.config:
+        try:
+            config = RalphConfig.from_yaml(args.config)
+            # Override with any CLI arguments that were explicitly provided
+            if hasattr(args, 'agent') and args.agent != 'auto':
+                config.agent = agent_map[args.agent]
+            if hasattr(args, 'verbose') and args.verbose:
+                config.verbose = args.verbose
+            if hasattr(args, 'dry_run') and args.dry_run:
+                config.dry_run = args.dry_run
+        except Exception as e:
+            print(f"Error loading config file: {e}")
+            sys.exit(1)
+    else:
+        # Create config from CLI arguments
+        config = RalphConfig(
+            agent=agent_map[args.agent],
+            prompt_file=args.prompt,
+            max_iterations=args.max_iterations,
+            max_runtime=args.max_runtime,
+            checkpoint_interval=args.checkpoint_interval,
+            retry_delay=args.retry_delay,
+            archive_prompts=not args.no_archive,
+            git_checkpoint=not args.no_git,
+            verbose=args.verbose,
+            dry_run=args.dry_run,
+            max_tokens=args.max_tokens,
+            max_cost=args.max_cost,
+            context_window=args.context_window,
+            context_threshold=args.context_threshold,
+            metrics_interval=args.metrics_interval,
+            enable_metrics=not args.no_metrics,
+            max_prompt_size=args.max_prompt_size,
+            allow_unsafe_paths=args.allow_unsafe_paths,
+            agent_args=args.agent_args if hasattr(args, 'agent_args') else []
+        )
     
     if config.dry_run:
         print("Dry run mode - no tools will be executed")
@@ -397,7 +449,27 @@ Examples:
         print(f"Press Ctrl+C to stop gracefully")
         print("=" * 50)
         
-        orchestrator = RalphOrchestrator(config)
+        # Convert RalphConfig to individual parameters for the proper orchestrator
+        # Map CLI agent names to orchestrator tool names
+        agent_name = config.agent.value if hasattr(config.agent, 'value') else str(config.agent)
+        tool_name_map = {
+            "q": "qchat",
+            "claude": "claude", 
+            "gemini": "gemini",
+            "auto": "auto"
+        }
+        primary_tool = tool_name_map.get(agent_name, agent_name)
+        
+        orchestrator = RalphOrchestrator(
+            prompt_file_or_config=config.prompt_file,
+            primary_tool=primary_tool,
+            max_iterations=config.max_iterations,
+            max_runtime=config.max_runtime,
+            track_costs=True,  # Enable cost tracking by default
+            max_cost=config.max_cost,
+            checkpoint_interval=config.checkpoint_interval,
+            verbose=config.verbose
+        )
         orchestrator.run()
         
         print("=" * 50)

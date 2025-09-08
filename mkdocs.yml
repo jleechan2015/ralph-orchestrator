@@ -88,6 +88,9 @@ nav:
     - examples/web-api.md
     - examples/cli-tool.md
     - examples/data-analysis.md
+    - examples/bug-fix.md
+    - examples/documentation.md
+    - examples/testing.md
   - Development:
     - contributing.md
     - testing.md
@@ -98,6 +101,8 @@ nav:
     - faq.md
     - glossary.md
     - research.md
+    - 03-best-practices/best-practices.md
+    - 06-analysis/comparison-matrix.md
 
 # Plugins
 plugins:

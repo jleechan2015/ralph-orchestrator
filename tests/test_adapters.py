@@ -126,16 +126,17 @@ class TestQChatAdapter(unittest.TestCase):
         )
     
     @patch('subprocess.run')
-    def test_execute_success(self, mock_run):
+    @patch('subprocess.Popen')
+    def test_execute_success(self, mock_popen, mock_run):
         """Test successful Q Chat execution."""
-        mock_run.side_effect = [
-            MagicMock(returncode=0),  # availability check
-            MagicMock(
-                returncode=0,
-                stdout="Q Chat response",
-                stderr=""
-            )  # execution
-        ]
+        mock_run.return_value = MagicMock(returncode=0)  # availability check
+        
+        # Mock the Popen process
+        mock_process = MagicMock()
+        mock_process.poll.return_value = 0  # Process completed successfully
+        mock_process.stdout.read.return_value = "Q Chat response"
+        mock_process.stderr.read.return_value = ""
+        mock_popen.return_value = mock_process
         
         adapter = QChatAdapter()
         response = adapter.execute("Test prompt")

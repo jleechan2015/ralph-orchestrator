@@ -47,18 +47,26 @@ Based on the Ralph Wiggum technique by [Geoffrey Huntley](https://ghuntley.com/r
 git clone https://github.com/yourusername/ralph-orchestrator.git
 cd ralph-orchestrator
 
-# Make scripts executable
-chmod +x ralph_orchestrator.py
-chmod +x ralph
+# Install with uv (recommended)
+uv sync
+
+# Or install with pip
+pip install -e .
 ```
 
 ## Prerequisites
 
 At least one AI CLI tool must be installed:
 
-- **[Claude CLI](https://claude.ai/code)**
+- **[Claude SDK](https://pypi.org/project/claude-code-sdk/)**
   ```bash
-  npm install -g @anthropic-ai/claude-code
+  # Automatically installed via dependencies
+  # Requires ANTHROPIC_API_KEY environment variable with proper permissions:
+  # - Read/Write access to conversations
+  # - Model access (Claude 3.5 Sonnet or similar)
+  # - Sufficient rate limits for continuous operation
+  
+  export ANTHROPIC_API_KEY="sk-ant-..."
   ```
 
 - **[Q Chat](https://github.com/qchat/qchat)**
@@ -75,10 +83,64 @@ At least one AI CLI tool must be installed:
 
 ### 1. Initialize a project
 ```bash
-./ralph init
+ralph init
 ```
 
-### 2. Edit PROMPT.md with your task
+This creates:
+- `PROMPT.md` - Task description template
+- `ralph.yml` - Configuration file
+- `.agent/` - Ralph workspace directories
+
+### 2. Configure Ralph (optional)
+Edit `ralph.yml` to customize settings:
+```yaml
+# Core orchestrator settings
+agent: auto                    # Which agent to use: claude, q, gemini, auto
+prompt_file: PROMPT.md         # Path to prompt file
+max_iterations: 100            # Maximum iterations before stopping
+max_runtime: 14400             # Maximum runtime in seconds (4 hours)
+checkpoint_interval: 5         # Git checkpoint every N iterations
+retry_delay: 2                 # Delay between retries in seconds
+
+# Resource limits
+max_tokens: 1000000           # Maximum total tokens (1M)
+max_cost: 50.0                # Maximum cost in USD
+context_window: 200000        # Context window size in tokens
+context_threshold: 0.8        # Trigger summarization at 80% of context
+
+# Features
+archive_prompts: true         # Archive prompt history
+git_checkpoint: true          # Enable git checkpointing
+enable_metrics: true          # Enable metrics collection
+verbose: false                # Enable verbose output
+dry_run: false                # Test mode without execution
+
+# Adapter-specific configurations
+adapters:
+  claude:
+    enabled: true
+    timeout: 300              # Timeout in seconds
+    max_retries: 3            # Max retry attempts
+    args: []                  # Additional CLI arguments
+    env:                      # Environment variables
+      ANTHROPIC_API_KEY: ""   # Set your API key here or in environment
+  
+  q:
+    enabled: true
+    timeout: 300
+    max_retries: 3
+    args: []
+    env: {}
+  
+  gemini:
+    enabled: true
+    timeout: 300
+    max_retries: 3
+    args: []
+    env: {}
+```
+
+### 3. Edit PROMPT.md with your task
 ```markdown
 # Task: Build a Python Calculator
 
@@ -90,9 +152,11 @@ Create a calculator module with:
 <!-- Ralph will add TASK_COMPLETE when done -->
 ```
 
-### 3. Run Ralph
+### 4. Run Ralph
 ```bash
-./ralph run
+ralph run
+# or with config file
+ralph -c ralph.yml
 ```
 
 ## Usage
@@ -101,29 +165,33 @@ Create a calculator module with:
 
 ```bash
 # Run with auto-detected agent
-./ralph
+ralph
+
+# Use configuration file
+ralph -c ralph.yml
 
 # Use specific agent
-./ralph run -a claude
-./ralph run -a q
-./ralph run -a gemini
+ralph run -a claude
+ralph run -a q
+ralph run -a gemini
 
 # Check status
-./ralph status
+ralph status
 
 # Clean workspace
-./ralph clean
+ralph clean
 
 # Dry run (test without executing)
-./ralph run --dry-run
+ralph run --dry-run
 ```
 
 ### Advanced Options
 
 ```bash
-./ralph_orchestrator.py [OPTIONS]
+ralph [OPTIONS]
 
 Options:
+  -c, --config CONFIG             Configuration file (YAML format)
   --agent {claude,q,gemini,auto}  AI agent to use (default: auto)
   --prompt PROMPT                  Prompt file path (default: PROMPT.md)
   --max-iterations N               Maximum iterations (default: 100)
@@ -180,16 +248,31 @@ Options:
 
 ```
 ralph-orchestrator/
-├── ralph_orchestrator.py     # Main orchestrator implementation
-├── ralph                     # Bash wrapper with convenience commands
-├── test_comprehensive.py     # Complete test suite
-├── PROMPT.md                # Task description (user created)
-├── .agent/                  # Ralph workspace
-│   ├── prompts/            # Archived prompt history
-│   ├── checkpoints/        # Git checkpoint markers
-│   ├── metrics/            # Performance and state data
-│   └── plans/              # Agent planning documents
-└── examples/               # Example prompts and use cases
+├── src/
+│   └── ralph_orchestrator/
+│       ├── __main__.py      # CLI entry point
+│       ├── main.py          # Main orchestrator loop
+│       ├── orchestrator.py  # Core orchestration logic
+│       ├── adapters/        # AI agent adapters
+│       │   ├── base.py      # Base adapter interface
+│       │   ├── claude.py    # Claude SDK adapter
+│       │   ├── gemini.py    # Gemini CLI adapter
+│       │   └── qchat.py     # Q Chat adapter
+│       ├── context.py       # Context management
+│       ├── metrics.py       # Metrics tracking
+│       └── safety.py        # Safety checks
+├── tests/                   # Test suite
+│   ├── test_orchestrator.py
+│   ├── test_adapters.py
+│   └── test_integration.py
+├── docs/                    # Documentation
+├── PROMPT.md               # Task description (user created)
+├── pyproject.toml          # Project configuration
+└── .agent/                 # Ralph workspace
+    ├── prompts/            # Archived prompt history
+    ├── checkpoints/        # Git checkpoint markers
+    ├── metrics/            # Performance and state data
+    └── plans/              # Agent planning documents
 ```
 
 ## Testing
@@ -198,13 +281,16 @@ ralph-orchestrator/
 
 ```bash
 # All tests
-python test_comprehensive.py -v
+uv run pytest -v
 
-# Specific test class
-python test_comprehensive.py TestRalphOrchestrator -v
+# With coverage
+uv run pytest --cov=ralph_orchestrator
+
+# Specific test file
+uv run pytest tests/test_orchestrator.py -v
 
 # Integration tests only
-python test_comprehensive.py TestIntegration -v
+uv run pytest tests/test_integration.py -v
 ```
 
 ### Test Coverage
@@ -221,7 +307,7 @@ python test_comprehensive.py TestIntegration -v
 
 ```bash
 echo "Write a Python function to check if a number is prime" > PROMPT.md
-./ralph run -a claude -i 5
+ralph run -a claude --max-iterations 5
 ```
 
 ### Web Application
@@ -235,7 +321,7 @@ Build a Flask web app with:
 - Bootstrap UI
 EOF
 
-./ralph run --max-iterations 50
+ralph run --max-iterations 50
 ```
 
 ### Test-Driven Development
@@ -249,7 +335,7 @@ Implement a linked list in Python using TDD:
 4. Ensure 100% test coverage
 EOF
 
-./ralph run -a q --verbose
+ralph run -a q --verbose
 ```
 
 ## Monitoring
@@ -257,7 +343,7 @@ EOF
 ### Check Status
 ```bash
 # One-time status check
-./ralph status
+ralph status
 
 # Example output:
 Ralph Orchestrator Status
@@ -275,7 +361,7 @@ Latest metrics: .agent/metrics/state_20250907_154435.json
 ### View Logs
 ```bash
 # If using verbose mode
-./ralph run --verbose 2>&1 | tee ralph.log
+ralph run --verbose 2>&1 | tee ralph.log
 
 # Check git history
 git log --oneline | grep "Ralph checkpoint"
@@ -301,8 +387,8 @@ cat .agent/metrics/state_*.json | jq '.errors[-1]'
 git reset --hard HEAD
 
 # Clean and restart
-./ralph clean
-./ralph run
+ralph clean
+ralph run
 ```
 
 ## Best Practices
@@ -318,13 +404,19 @@ git reset --hard HEAD
 
 ### Agent Not Found
 ```bash
-# Check available agents
-which claude
+# For Claude, ensure API key is set with proper permissions
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Verify Claude API key permissions:
+# - Should have access to Claude 3.5 Sonnet or similar model
+# - Need sufficient rate limits (at least 40,000 tokens/minute)
+# - Requires read/write access to the API
+
+# For Q and Gemini, check CLI tools are installed
 which q
 which gemini
 
-# Install missing agent
-npm install -g @anthropic-ai/claude-code
+# Install missing CLI tools as needed
 ```
 
 ### Task Not Completing
@@ -336,16 +428,16 @@ grep TASK_COMPLETE PROMPT.md
 cat .agent/metrics/state_*.json | jq '.errors'
 
 # Try different agent
-./ralph run -a gemini
+ralph run -a gemini
 ```
 
 ### Performance Issues
 ```bash
 # Reduce iteration timeout
-./ralph run --max-runtime 1800
+ralph run --max-runtime 1800
 
 # Increase checkpoint frequency
-./ralph run --checkpoint-interval 3
+ralph run --checkpoint-interval 3
 ```
 
 ## Research & Theory
@@ -366,7 +458,7 @@ Contributions welcome! Please:
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Write tests for new functionality
-4. Ensure all tests pass (`python test_comprehensive.py`)
+4. Ensure all tests pass (`uv run pytest`)
 5. Commit changes (`git commit -m 'Add amazing feature'`)
 6. Push to branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request

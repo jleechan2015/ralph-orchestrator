@@ -1,0 +1,59 @@
+{
+  "iteration_count": 4,
+  "start_time": 1757344250.467742,
+  "runtime": 582.7634720802307,
+  "errors": [],
+  "checkpoints": [],
+  "token_metrics": {
+    "input_tokens": 162,
+    "output_tokens": 708,
+    "total_cost": 0.011106,
+    "total_tokens": 870,
+    "iterations": [
+      {
+        "timestamp": "2025-09-08T10:12:22.083631",
+        "input_tokens": 54,
+        "output_tokens": 91,
+        "cost": 0.001527,
+        "cumulative_cost": 0.001527
+      },
+      {
+        "timestamp": "2025-09-08T10:15:40.441563",
+        "input_tokens": 54,
+        "output_tokens": 306,
+        "cost": 0.004752,
+        "cumulative_cost": 0.006279
+      },
+      {
+        "timestamp": "2025-09-08T10:20:22.917272",
+        "input_tokens": 54,
+        "output_tokens": 311,
+        "cost": 0.004827,
+        "cumulative_cost": 0.011106
+      }
+    ]
+  },
+  "metrics_summary": {
+    "total_iterations": 3,
+    "successful_iterations": 3,
+    "success_rate": 1.0,
+    "total_duration_seconds": 570.2470724582672,
+    "average_duration_seconds": 190.08235748608908,
+    "total_tokens": 870,
+    "total_cost_usd": 0.011106,
+    "system_info": {
+      "platform": "Linux-6.16.5-2-cachyos-x86_64-with-glibc2.42",
+      "python_version": "3.12.11",
+      "cpu_count": 24
+    }
+  },
+  "config": {
+    "agent": "auto",
+    "prompt_file": "PROMPT.md",
+    "max_iterations": 100,
+    "max_runtime": 14400,
+    "max_tokens": 1000000,
+    "max_cost": 50.0,
+    "context_window": 200000
+  }
+}

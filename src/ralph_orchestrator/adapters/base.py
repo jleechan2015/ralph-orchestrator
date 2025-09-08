@@ -29,8 +29,12 @@ class ToolResponse:
 class ToolAdapter(ABC):
     """Abstract base class for tool adapters."""
     
-    def __init__(self, name: str):
+    def __init__(self, name: str, config=None):
         self.name = name
+        self.config = config or type('Config', (), {
+            'enabled': True, 'timeout': 300, 'max_retries': 3, 
+            'args': [], 'env': {}
+        })()
         self.available = self.check_availability()
     
     @abstractmethod
@@ -50,7 +54,10 @@ class ToolAdapter(ABC):
         Subclasses can override for native async support.
         """
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.execute, prompt, **kwargs)
+        # Create a function that can be called with no arguments for run_in_executor
+        def execute_with_args():
+            return self.execute(prompt, **kwargs)
+        return await loop.run_in_executor(None, execute_with_args)
     
     def execute_with_file(self, prompt_file: Path, **kwargs) -> ToolResponse:
         """Execute the tool with a prompt file."""

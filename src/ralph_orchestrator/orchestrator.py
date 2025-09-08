@@ -248,7 +248,8 @@ class RalphOrchestrator:
         # Try primary adapter with prompt file path
         response = await self.current_adapter.aexecute(
             prompt, 
-            prompt_file=str(self.prompt_file)
+            prompt_file=str(self.prompt_file),
+            verbose=self.verbose
         )
         
         if not response.success and len(self.adapters) > 1:
@@ -258,10 +259,19 @@ class RalphOrchestrator:
                     logger.info(f"Falling back to {name}")
                     response = await adapter.aexecute(
                         prompt,
-                        prompt_file=str(self.prompt_file)
+                        prompt_file=str(self.prompt_file),
+                        verbose=self.verbose
                     )
                     if response.success:
                         break
+        
+        # Log the response output (already streamed to console if verbose)
+        if response.success and response.output:
+            # Log a preview for the logs
+            output_preview = response.output[:500] if len(response.output) > 500 else response.output
+            logger.debug(f"Agent response preview: {output_preview}")
+            if len(response.output) > 500:
+                logger.debug(f"... (total {len(response.output)} characters)")
         
         # Track costs if enabled
         if self.cost_tracker and response.success:

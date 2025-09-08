@@ -29,6 +29,7 @@ class ClaudeAdapter(ToolAdapter):
         self._system_prompt = None
         self._allowed_tools = None
         self._disallowed_tools = None
+        self._enable_all_tools = False
         self.verbose = verbose
     
     def check_availability(self) -> bool:
@@ -39,17 +40,20 @@ class ClaudeAdapter(ToolAdapter):
     def configure(self, 
                   system_prompt: Optional[str] = None,
                   allowed_tools: Optional[list] = None,
-                  disallowed_tools: Optional[list] = None):
+                  disallowed_tools: Optional[list] = None,
+                  enable_all_tools: bool = False):
         """Configure the Claude adapter with custom options.
         
         Args:
             system_prompt: Custom system prompt for Claude
-            allowed_tools: List of allowed tools for Claude to use
+            allowed_tools: List of allowed tools for Claude to use (if None and enable_all_tools=True, all tools are enabled)
             disallowed_tools: List of disallowed tools
+            enable_all_tools: If True and allowed_tools is None, enables all native Claude tools
         """
         self._system_prompt = system_prompt
         self._allowed_tools = allowed_tools
         self._disallowed_tools = disallowed_tools
+        self._enable_all_tools = enable_all_tools
     
     def execute(self, prompt: str, **kwargs) -> ToolResponse:
         """Execute Claude with the given prompt synchronously.
@@ -108,13 +112,23 @@ class ClaudeAdapter(ToolAdapter):
             options_dict['system_prompt'] = system_prompt
             
             # Set tool restrictions if provided
+            # If enable_all_tools is True and no allowed_tools specified, don't set any restrictions
+            enable_all_tools = kwargs.get('enable_all_tools', self._enable_all_tools)
             allowed_tools = kwargs.get('allowed_tools', self._allowed_tools)
-            if allowed_tools:
-                options_dict['allowed_tools'] = allowed_tools
-            
             disallowed_tools = kwargs.get('disallowed_tools', self._disallowed_tools)
-            if disallowed_tools:
-                options_dict['disallowed_tools'] = disallowed_tools
+            
+            # Only set tool restrictions if we're not enabling all tools or if specific tools are provided
+            if not enable_all_tools or allowed_tools:
+                if allowed_tools:
+                    options_dict['allowed_tools'] = allowed_tools
+                
+                if disallowed_tools:
+                    options_dict['disallowed_tools'] = disallowed_tools
+            
+            # If enable_all_tools is True and no allowed_tools, Claude will have access to all native tools
+            if enable_all_tools and not allowed_tools:
+                if self.verbose:
+                    logger.info("Enabling all native Claude tools")
             
             # Create options
             options = ClaudeCodeOptions(**options_dict)
@@ -137,12 +151,16 @@ class ClaudeAdapter(ToolAdapter):
             # Use one-shot query for simpler execution
             if self.verbose:
                 logger.info("Starting Claude SDK query...")
+                print("\n" + "="*50)
+                print("CLAUDE PROCESSING:")
+                print("="*50)
             
             async for message in query(prompt=prompt, options=options):
                 chunk_count += 1
                 msg_type = type(message).__name__
                 
                 if self.verbose:
+                    print(f"\n[DEBUG: Received {msg_type}]", flush=True)
                     logger.debug(f"Received message type: {msg_type}")
                 
                 # Handle different message types
@@ -156,7 +174,10 @@ class ClaudeAdapter(ToolAdapter):
                                 # TextBlock
                                 text = content_block.text
                                 output_chunks.append(text)
-                                if self.verbose:
+                                
+                                # Stream output to console in real-time when verbose
+                                if self.verbose and text:
+                                    print(text, end='', flush=True)
                                     logger.debug(f"Received assistant text: {len(text)} characters")
                             
                             elif block_type == 'ToolUseBlock':
@@ -164,6 +185,7 @@ class ClaudeAdapter(ToolAdapter):
                                 if self.verbose:
                                     tool_name = getattr(content_block, 'name', 'unknown')
                                     tool_id = getattr(content_block, 'id', 'unknown')
+                                    print(f"\n[Tool: {tool_name}]", flush=True)
                                     logger.info(f"Tool use detected: {tool_name} (id: {tool_id[:8]}...)")
                                     if hasattr(content_block, 'input'):
                                         logger.debug(f"  Tool input: {content_block.input}")
@@ -209,12 +231,14 @@ class ClaudeAdapter(ToolAdapter):
                     chunk_text = message.text
                     output_chunks.append(chunk_text)
                     if self.verbose:
+                        print(chunk_text, end='', flush=True)
                         logger.debug(f"Received text chunk {chunk_count}: {len(chunk_text)} characters")
                 
                 elif isinstance(message, str):
                     # Plain string message
                     output_chunks.append(message)
                     if self.verbose:
+                        print(message, end='', flush=True)
                         logger.debug(f"Received string chunk {chunk_count}: {len(message)} characters")
                 
                 else:
@@ -223,6 +247,15 @@ class ClaudeAdapter(ToolAdapter):
             
             # Combine output
             output = ''.join(output_chunks)
+            
+            # End streaming section if verbose
+            if self.verbose:
+                print("\n" + "="*50 + "\n")
+            
+            # Always log the output we're about to return
+            logger.info(f"Claude adapter returning {len(output)} characters of output")
+            if output:
+                logger.debug(f"Output preview: {output[:200]}...")
             
             # Calculate cost if we have token count
             cost = self._calculate_cost(tokens_used) if tokens_used > 0 else None

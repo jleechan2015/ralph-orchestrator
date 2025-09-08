@@ -1,0 +1,24 @@
+{
+  "iteration_count": 1,
+  "start_time": 1757344235.3503842,
+  "runtime": 10.350561141967773,
+  "errors": [],
+  "checkpoints": [],
+  "token_metrics": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_cost": 0.0,
+    "total_tokens": 0,
+    "iterations": []
+  },
+  "metrics_summary": {},
+  "config": {
+    "agent": "auto",
+    "prompt_file": "PROMPT.md",
+    "max_iterations": 100,
+    "max_runtime": 14400,
+    "max_tokens": 1000000,
+    "max_cost": 50.0,
+    "context_window": 200000
+  }
+}

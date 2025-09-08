@@ -5,6 +5,7 @@
 
 import subprocess
 import os
+import sys
 from typing import Optional
 from .base import ToolAdapter, ToolResponse
 
@@ -40,6 +41,9 @@ class QChatAdapter(ToolAdapter):
             )
         
         try:
+            # Get verbose flag from kwargs
+            verbose = kwargs.get('verbose', True)
+            
             # Get the prompt file path from kwargs if available
             prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
             
@@ -62,35 +66,154 @@ class QChatAdapter(ToolAdapter):
                 effective_prompt  # Pass the enhanced prompt
             ]
             
-            # Execute command
-            result = subprocess.run(
+            if verbose:
+                print(f"Starting q chat command...", file=sys.stderr)
+                print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+                print(f"Working directory: {os.getcwd()}", file=sys.stderr)
+                print(f"Timeout: {kwargs.get('timeout', 300)} seconds", file=sys.stderr)
+                print("-" * 60, file=sys.stderr)
+            
+            # Use Popen for real-time output streaming
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=kwargs.get("timeout", 300),  # 5 minute default
-                cwd=os.getcwd()  # Make sure we're in the right directory
+                cwd=os.getcwd(),
+                bufsize=1,  # Line buffered
+                universal_newlines=True
             )
             
-            if result.returncode == 0:
+            # Collect output while streaming
+            stdout_lines = []
+            stderr_lines = []
+            
+            # Stream output in real-time
+            import select
+            import time
+            
+            timeout = kwargs.get("timeout", 600)  # Increase default to 10 minutes for complex tasks
+            start_time = time.time()
+            
+            while True:
+                # Check for timeout
+                elapsed_time = time.time() - start_time
+                
+                # Log progress every 30 seconds when verbose
+                if verbose and int(elapsed_time) % 30 == 0 and int(elapsed_time) > 0:
+                    print(f"Q chat still running... elapsed: {elapsed_time:.1f}s / {timeout}s", file=sys.stderr)
+                    # Also check if the process seems stuck (no output for a while)
+                    if len(stdout_lines) == 0 and len(stderr_lines) == 0 and elapsed_time > 60:
+                        print("Warning: No output received yet, Q might be stuck", file=sys.stderr)
+                
+                if elapsed_time > timeout:
+                    if verbose:
+                        print(f"Command timed out after {elapsed_time:.2f} seconds", file=sys.stderr)
+                    
+                    # Try to terminate gracefully first
+                    process.terminate()
+                    try:
+                        # Wait a bit for graceful termination
+                        process.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        if verbose:
+                            print("Graceful termination failed, force killing process", file=sys.stderr)
+                        process.kill()
+                        # Wait for force kill to complete
+                        try:
+                            process.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            if verbose:
+                                print("Warning: Process may still be running after kill", file=sys.stderr)
+                    
+                    # Try to capture any remaining output after termination
+                    try:
+                        remaining_stdout = process.stdout.read()
+                        remaining_stderr = process.stderr.read()
+                        if remaining_stdout:
+                            stdout_lines.append(remaining_stdout)
+                        if remaining_stderr:
+                            stderr_lines.append(remaining_stderr)
+                    except Exception as e:
+                        if verbose:
+                            print(f"Warning: Could not read remaining output after timeout: {e}", file=sys.stderr)
+                    
+                    return ToolResponse(
+                        success=False,
+                        output="".join(stdout_lines),
+                        error=f"q chat command timed out after {elapsed_time:.2f} seconds"
+                    )
+                
+                # Check if process is still running
+                if process.poll() is not None:
+                    # Process finished, read remaining output
+                    remaining_stdout = process.stdout.read()
+                    remaining_stderr = process.stderr.read()
+                    
+                    if remaining_stdout:
+                        stdout_lines.append(remaining_stdout)
+                        if verbose:
+                            print(f"{remaining_stdout}", end='', file=sys.stderr)
+                    
+                    if remaining_stderr:
+                        stderr_lines.append(remaining_stderr)
+                        if verbose:
+                            print(f"{remaining_stderr}", end='', file=sys.stderr)
+                    
+                    break
+                
+                # Use select to read available data without blocking
+                # Use shorter timeout to be more responsive to process completion and timeouts
+                remaining_timeout = max(0, timeout - elapsed_time)
+                select_timeout = min(0.1, remaining_timeout)
+                readable, _, _ = select.select([process.stdout, process.stderr], [], [], select_timeout)
+                
+                for stream in readable:
+                    if stream == process.stdout:
+                        line = stream.readline()
+                        if line:
+                            stdout_lines.append(line)
+                            if verbose:
+                                print(f"{line}", end='', file=sys.stderr)
+                    elif stream == process.stderr:
+                        line = stream.readline()
+                        if line:
+                            stderr_lines.append(line)
+                            if verbose:
+                                print(f"{line}", end='', file=sys.stderr)
+            
+            # Get final return code
+            returncode = process.poll()
+            
+            if verbose:
+                print("-" * 60, file=sys.stderr)
+                print(f"Process completed with return code: {returncode}", file=sys.stderr)
+                print(f"Total execution time: {time.time() - start_time:.2f} seconds", file=sys.stderr)
+            
+            # Combine output
+            full_stdout = "".join(stdout_lines)
+            full_stderr = "".join(stderr_lines)
+            
+            if returncode == 0:
                 return ToolResponse(
                     success=True,
-                    output=result.stdout,
-                    metadata={"tool": "q chat"}
+                    output=full_stdout,
+                    metadata={
+                        "tool": "q chat",
+                        "execution_time": time.time() - start_time,
+                        "verbose": verbose
+                    }
                 )
             else:
                 return ToolResponse(
                     success=False,
-                    output=result.stdout,
-                    error=result.stderr or "q chat command failed"
+                    output=full_stdout,
+                    error=full_stderr or "q chat command failed"
                 )
                 
-        except subprocess.TimeoutExpired:
-            return ToolResponse(
-                success=False,
-                output="",
-                error="q chat command timed out"
-            )
         except Exception as e:
+            if verbose:
+                print(f"Exception occurred: {str(e)}", file=sys.stderr)
             return ToolResponse(
                 success=False,
                 output="",
