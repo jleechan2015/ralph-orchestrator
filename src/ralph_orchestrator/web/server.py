@@ -110,6 +110,22 @@ class OrchestratorMonitor:
             if client in self.websocket_clients:
                 self.websocket_clients.remove(client)
     
+    def _schedule_broadcast(self, message: Dict[str, Any]):
+        """Schedule a broadcast to clients, handling both sync and async contexts."""
+        try:
+            # Check if there's a running event loop
+            loop = asyncio.get_running_loop()
+            # If we're in an async context, schedule the broadcast
+            asyncio.create_task(self._broadcast_to_clients(message))
+        except RuntimeError:
+            # No event loop running - we're in a sync context (e.g., during testing)
+            # The broadcast will be skipped in this case
+            pass
+    
+    async def broadcast_update(self, message: Dict[str, Any]):
+        """Public method to broadcast updates to WebSocket clients."""
+        await self._broadcast_to_clients(message)
+    
     def register_orchestrator(self, orchestrator_id: str, orchestrator: RalphOrchestrator):
         """Register an orchestrator instance."""
         self.active_orchestrators[orchestrator_id] = orchestrator
@@ -134,10 +150,10 @@ class OrchestratorMonitor:
         except Exception as e:
             logger.error(f"Error creating database run for orchestrator {orchestrator_id}: {e}")
         
-        asyncio.create_task(self._broadcast_to_clients({
+        self._schedule_broadcast({
             "type": "orchestrator_registered",
             "data": {"id": orchestrator_id, "timestamp": datetime.now().isoformat()}
-        }))
+        })
     
     def unregister_orchestrator(self, orchestrator_id: str):
         """Unregister an orchestrator instance."""
@@ -164,10 +180,10 @@ class OrchestratorMonitor:
             if orchestrator_id in self.active_iterations:
                 del self.active_iterations[orchestrator_id]
             
-            asyncio.create_task(self._broadcast_to_clients({
+            self._schedule_broadcast({
                 "type": "orchestrator_unregistered",
                 "data": {"id": orchestrator_id, "timestamp": datetime.now().isoformat()}
-            }))
+            })
     
     def get_orchestrator_status(self, orchestrator_id: str) -> Dict[str, Any]:
         """Get status of a specific orchestrator."""
@@ -382,6 +398,14 @@ class WebMonitor:
         
         # Create dependency for auth if enabled
         auth_dependency = Depends(get_current_user) if self.enable_auth else None
+        
+        @self.app.get("/api/health")
+        async def health_check():
+            """Health check endpoint."""
+            return {
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat()
+            }
         
         @self.app.get("/api/status", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_status():
