@@ -5,8 +5,9 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 from pathlib import Path
+import asyncio
 
 
 @dataclass
@@ -42,6 +43,15 @@ class ToolAdapter(ABC):
         """Execute the tool with the given prompt."""
         pass
     
+    async def aexecute(self, prompt: str, **kwargs) -> ToolResponse:
+        """Async execute the tool with the given prompt.
+        
+        Default implementation runs sync execute in thread pool.
+        Subclasses can override for native async support.
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.execute, prompt, **kwargs)
+    
     def execute_with_file(self, prompt_file: Path, **kwargs) -> ToolResponse:
         """Execute the tool with a prompt file."""
         if not prompt_file.exists():
@@ -55,6 +65,20 @@ class ToolAdapter(ABC):
             prompt = f.read()
         
         return self.execute(prompt, **kwargs)
+    
+    async def aexecute_with_file(self, prompt_file: Path, **kwargs) -> ToolResponse:
+        """Async execute the tool with a prompt file."""
+        if not prompt_file.exists():
+            return ToolResponse(
+                success=False,
+                output="",
+                error=f"Prompt file {prompt_file} not found"
+            )
+        
+        with open(prompt_file, 'r') as f:
+            prompt = f.read()
+        
+        return await self.aexecute(prompt, **kwargs)
     
     def estimate_cost(self, prompt: str) -> float:
         """Estimate the cost of executing this prompt."""

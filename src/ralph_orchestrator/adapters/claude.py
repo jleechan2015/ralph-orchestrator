@@ -1,97 +1,75 @@
-# ABOUTME: Claude CLI adapter implementation
-# ABOUTME: Provides integration with Anthropic's Claude via command-line interface
+# ABOUTME: Claude SDK adapter implementation
+# ABOUTME: Provides integration with Anthropic's Claude via Python SDK
 
-"""Claude CLI adapter for Ralph Orchestrator."""
+"""Claude SDK adapter for Ralph Orchestrator."""
 
-import subprocess
+import asyncio
 import os
-import json
-import re
-from typing import Optional
+import logging
+from typing import Optional, AsyncIterator
+from pathlib import Path
 from .base import ToolAdapter, ToolResponse
+
+# Setup logging
+logger = logging.getLogger(__name__)
+
+try:
+    from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions, query
+    CLAUDE_SDK_AVAILABLE = True
+except ImportError:
+    CLAUDE_SDK_AVAILABLE = False
 
 
 class ClaudeAdapter(ToolAdapter):
-    """Adapter for Claude CLI tool."""
+    """Adapter for Claude using the Python SDK."""
     
-    def __init__(self):
-        self.command = "claude"
+    def __init__(self, verbose: bool = False):
         super().__init__("claude")
+        self.sdk_available = CLAUDE_SDK_AVAILABLE
+        self._system_prompt = None
+        self._allowed_tools = None
+        self._disallowed_tools = None
+        self.verbose = verbose
     
     def check_availability(self) -> bool:
-        """Check if Claude CLI is available."""
-        try:
-            result = subprocess.run(
-                [self.command, "--version"],
-                capture_output=True,
-                timeout=5,
-                text=True
-            )
-            return result.returncode == 0
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            return False
+        """Check if Claude SDK is available and properly configured."""
+        # Claude Code SDK works without API key - it uses the local environment
+        return CLAUDE_SDK_AVAILABLE
+    
+    def configure(self, 
+                  system_prompt: Optional[str] = None,
+                  allowed_tools: Optional[list] = None,
+                  disallowed_tools: Optional[list] = None):
+        """Configure the Claude adapter with custom options.
+        
+        Args:
+            system_prompt: Custom system prompt for Claude
+            allowed_tools: List of allowed tools for Claude to use
+            disallowed_tools: List of disallowed tools
+        """
+        self._system_prompt = system_prompt
+        self._allowed_tools = allowed_tools
+        self._disallowed_tools = disallowed_tools
     
     def execute(self, prompt: str, **kwargs) -> ToolResponse:
-        """Execute Claude with the given prompt."""
-        if not self.available:
-            return ToolResponse(
-                success=False,
-                output="",
-                error="Claude CLI is not available"
-            )
+        """Execute Claude with the given prompt synchronously.
         
+        This is a blocking wrapper around the async implementation.
+        """
         try:
-            # Get the prompt file path from kwargs if available
-            prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
-            
-            # Construct an effective prompt for Claude Code
-            # Tell it explicitly to edit the prompt file and add TASK_COMPLETE
-            effective_prompt = (
-                f"Please complete the task described in the file '{prompt_file}'. "
-                f"The current content is:\n\n{prompt}\n\n"
-                f"Edit the file '{prompt_file}' directly to add your solution. "
-                f"When you have completed the task, add 'TASK_COMPLETE' on its own line at the end of the file. "
-                f"Use your file editing tools to modify the file."
-            )
-            
-            # Build command for Claude Code CLI
-            # Use -p flag for non-interactive print mode
-            # Add --dangerously-skip-permissions for automation
-            cmd = [self.command, "-p", "--dangerously-skip-permissions", effective_prompt]
-            
-            # Execute command
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=kwargs.get("timeout", 300),  # 5 minute default
-                cwd=os.getcwd()  # Make sure we're in the right directory
-            )
-            
-            if result.returncode == 0:
-                # Try to extract token count from output if available
-                tokens = self._extract_token_count(result.stderr)
-                
-                return ToolResponse(
-                    success=True,
-                    output=result.stdout,
-                    tokens_used=tokens,
-                    cost=self._calculate_cost(tokens),
-                    metadata={"model": kwargs.get("model", "claude-3-sonnet")}
-                )
+            # Create new event loop if needed
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(self.aexecute(prompt, **kwargs))
             else:
-                return ToolResponse(
-                    success=False,
-                    output=result.stdout,
-                    error=result.stderr or "Command failed"
-                )
-                
-        except subprocess.TimeoutExpired:
-            return ToolResponse(
-                success=False,
-                output="",
-                error="Claude command timed out"
-            )
+                # If loop is already running, schedule as task
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, self.aexecute(prompt, **kwargs))
+                    return future.result()
         except Exception as e:
             return ToolResponse(
                 success=False,
@@ -99,17 +77,189 @@ class ClaudeAdapter(ToolAdapter):
                 error=str(e)
             )
     
-    def _extract_token_count(self, stderr: str) -> Optional[int]:
-        """Extract token count from Claude stderr output."""
-        if not stderr:
-            return None
+    async def aexecute(self, prompt: str, **kwargs) -> ToolResponse:
+        """Execute Claude with the given prompt asynchronously."""
+        if not self.available:
+            logger.warning("Claude SDK not available")
+            return ToolResponse(
+                success=False,
+                output="",
+                error="Claude SDK is not available"
+            )
         
-        # Look for token count in stderr
-        match = re.search(r'tokens?[:\s]+(\d+)', stderr, re.IGNORECASE)
-        if match:
-            return int(match.group(1))
-        
-        return None
+        try:
+            # Get configuration from kwargs or use defaults
+            prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
+            timeout = kwargs.get("timeout", 300)
+            
+            # Build options for Claude Code
+            options_dict = {}
+            
+            # Set system prompt
+            system_prompt = kwargs.get('system_prompt', self._system_prompt)
+            if not system_prompt:
+                # Create a default system prompt for file editing
+                system_prompt = (
+                    f"You are helping complete a task. "
+                    f"The task is described in the file '{prompt_file}'. "
+                    f"Please edit this file directly to add your solution. "
+                    f"When you have completed the task, add 'TASK_COMPLETE' on its own line at the end of the file."
+                )
+            options_dict['system_prompt'] = system_prompt
+            
+            # Set tool restrictions if provided
+            allowed_tools = kwargs.get('allowed_tools', self._allowed_tools)
+            if allowed_tools:
+                options_dict['allowed_tools'] = allowed_tools
+            
+            disallowed_tools = kwargs.get('disallowed_tools', self._disallowed_tools)
+            if disallowed_tools:
+                options_dict['disallowed_tools'] = disallowed_tools
+            
+            # Create options
+            options = ClaudeCodeOptions(**options_dict)
+            
+            # Log request details if verbose
+            if self.verbose:
+                logger.info(f"Claude SDK Request:")
+                logger.info(f"  Prompt length: {len(prompt)} characters")
+                logger.info(f"  System prompt: {system_prompt[:100]}..." if len(system_prompt) > 100 else f"  System prompt: {system_prompt}")
+                if allowed_tools:
+                    logger.info(f"  Allowed tools: {allowed_tools}")
+                if disallowed_tools:
+                    logger.info(f"  Disallowed tools: {disallowed_tools}")
+            
+            # Collect all response chunks
+            output_chunks = []
+            tokens_used = 0
+            chunk_count = 0
+            
+            # Use one-shot query for simpler execution
+            if self.verbose:
+                logger.info("Starting Claude SDK query...")
+            
+            async for message in query(prompt=prompt, options=options):
+                chunk_count += 1
+                msg_type = type(message).__name__
+                
+                if self.verbose:
+                    logger.debug(f"Received message type: {msg_type}")
+                
+                # Handle different message types
+                if msg_type == 'AssistantMessage':
+                    # Extract content from AssistantMessage
+                    if hasattr(message, 'content') and message.content:
+                        for content_block in message.content:
+                            block_type = type(content_block).__name__
+                            
+                            if hasattr(content_block, 'text'):
+                                # TextBlock
+                                text = content_block.text
+                                output_chunks.append(text)
+                                if self.verbose:
+                                    logger.debug(f"Received assistant text: {len(text)} characters")
+                            
+                            elif block_type == 'ToolUseBlock':
+                                # Tool use block - log but don't include in output
+                                if self.verbose:
+                                    tool_name = getattr(content_block, 'name', 'unknown')
+                                    tool_id = getattr(content_block, 'id', 'unknown')
+                                    logger.info(f"Tool use detected: {tool_name} (id: {tool_id[:8]}...)")
+                                    if hasattr(content_block, 'input'):
+                                        logger.debug(f"  Tool input: {content_block.input}")
+                            
+                            else:
+                                if self.verbose:
+                                    logger.debug(f"Unknown content block type: {block_type}")
+                
+                elif msg_type == 'ResultMessage':
+                    # ResultMessage contains final result and usage stats
+                    if hasattr(message, 'result'):
+                        # Don't append result - it's usually a duplicate of assistant message
+                        if self.verbose:
+                            logger.debug(f"Result message received: {len(str(message.result))} characters")
+                    
+                    # Extract token usage from ResultMessage
+                    if hasattr(message, 'usage'):
+                        usage = message.usage
+                        if isinstance(usage, dict):
+                            tokens_used = usage.get('input_tokens', 0) + usage.get('output_tokens', 0)
+                        else:
+                            tokens_used = getattr(usage, 'total_tokens', 0)
+                        if self.verbose:
+                            logger.debug(f"Token usage: {tokens_used} tokens")
+                
+                elif msg_type == 'SystemMessage':
+                    # SystemMessage is initialization data, skip it
+                    if self.verbose:
+                        logger.debug("System initialization message received")
+                
+                elif msg_type == 'UserMessage':
+                    # User message (tool results being sent back)
+                    if self.verbose:
+                        logger.debug("User message (tool result) received")
+                
+                elif msg_type == 'ToolResultMessage':
+                    # Tool result message
+                    if self.verbose:
+                        logger.debug("Tool result message received")
+                
+                elif hasattr(message, 'text'):
+                    # Generic text message
+                    chunk_text = message.text
+                    output_chunks.append(chunk_text)
+                    if self.verbose:
+                        logger.debug(f"Received text chunk {chunk_count}: {len(chunk_text)} characters")
+                
+                elif isinstance(message, str):
+                    # Plain string message
+                    output_chunks.append(message)
+                    if self.verbose:
+                        logger.debug(f"Received string chunk {chunk_count}: {len(message)} characters")
+                
+                else:
+                    if self.verbose:
+                        logger.debug(f"Unknown message type {msg_type}: {message}")
+            
+            # Combine output
+            output = ''.join(output_chunks)
+            
+            # Calculate cost if we have token count
+            cost = self._calculate_cost(tokens_used) if tokens_used > 0 else None
+            
+            # Log response details if verbose
+            if self.verbose:
+                logger.info(f"Claude SDK Response:")
+                logger.info(f"  Output length: {len(output)} characters")
+                logger.info(f"  Chunks received: {chunk_count}")
+                if tokens_used > 0:
+                    logger.info(f"  Tokens used: {tokens_used}")
+                    if cost:
+                        logger.info(f"  Estimated cost: ${cost:.4f}")
+                logger.debug(f"Response preview: {output[:500]}..." if len(output) > 500 else f"Response: {output}")
+            
+            return ToolResponse(
+                success=True,
+                output=output,
+                tokens_used=tokens_used if tokens_used > 0 else None,
+                cost=cost,
+                metadata={"model": kwargs.get("model", "claude-3-sonnet")}
+            )
+            
+        except asyncio.TimeoutError:
+            logger.error("Claude SDK request timed out")
+            return ToolResponse(
+                success=False,
+                output="",
+                error="Claude SDK request timed out"
+            )
+        except Exception as e:
+            logger.error(f"Claude SDK error: {str(e)}", exc_info=True)
+            return ToolResponse(
+                success=False,
+                output="",
+                error=str(e)
+            )
     
     def _calculate_cost(self, tokens: Optional[int]) -> Optional[float]:
         """Calculate estimated cost based on tokens."""

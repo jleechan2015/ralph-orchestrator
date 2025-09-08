@@ -4,8 +4,10 @@
 """Tests for Ralph Orchestrator adapters."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 import subprocess
+import asyncio
+import os
 
 from ralph_orchestrator.adapters.base import ToolAdapter, ToolResponse
 from ralph_orchestrator.adapters.claude import ClaudeAdapter
@@ -45,33 +47,37 @@ class TestToolResponse(unittest.TestCase):
 class TestClaudeAdapter(unittest.TestCase):
     """Test Claude adapter."""
     
-    @patch('subprocess.run')
-    def test_check_availability_success(self, mock_run):
-        """Test Claude availability check when available."""
-        mock_run.return_value = MagicMock(returncode=0)
-        
+    @patch('ralph_orchestrator.adapters.claude.CLAUDE_SDK_AVAILABLE', True)
+    def test_check_availability_success(self):
+        """Test Claude availability check when SDK is available."""
         adapter = ClaudeAdapter()
         self.assertTrue(adapter.available)
     
-    @patch('subprocess.run')
-    def test_check_availability_failure(self, mock_run):
-        """Test Claude availability check when not available."""
-        mock_run.side_effect = FileNotFoundError()
+    @patch('ralph_orchestrator.adapters.claude.CLAUDE_SDK_AVAILABLE', True)
+    def test_verbose_parameter(self):
+        """Test verbose parameter initialization."""
+        adapter = ClaudeAdapter(verbose=True)
+        self.assertTrue(adapter.verbose)
         
+        adapter_quiet = ClaudeAdapter(verbose=False)
+        self.assertFalse(adapter_quiet.verbose)
+    
+    @patch('ralph_orchestrator.adapters.claude.CLAUDE_SDK_AVAILABLE', False)
+    def test_check_availability_no_sdk(self):
+        """Test Claude availability check when SDK not available."""
         adapter = ClaudeAdapter()
         self.assertFalse(adapter.available)
     
-    @patch('subprocess.run')
-    def test_execute_success(self, mock_run):
+    
+    @patch('ralph_orchestrator.adapters.claude.CLAUDE_SDK_AVAILABLE', True)
+    @patch('ralph_orchestrator.adapters.claude.query')
+    def test_execute_success(self, mock_query):
         """Test successful Claude execution."""
-        mock_run.side_effect = [
-            MagicMock(returncode=0),  # availability check
-            MagicMock(
-                returncode=0,
-                stdout="Claude response",
-                stderr=""
-            )  # execution
-        ]
+        # Mock async iterator
+        async def mock_async_gen():
+            yield "Claude response"
+        
+        mock_query.return_value = mock_async_gen()
         
         adapter = ClaudeAdapter()
         response = adapter.execute("Test prompt")
@@ -86,6 +92,20 @@ class TestClaudeAdapter(unittest.TestCase):
         # Test with 1000 character prompt (roughly 250 tokens)
         cost = adapter.estimate_cost("x" * 1000)
         self.assertGreater(cost, 0)
+    
+    @patch('ralph_orchestrator.adapters.claude.CLAUDE_SDK_AVAILABLE', True)
+    def test_configure(self):
+        """Test adapter configuration."""
+        adapter = ClaudeAdapter()
+        adapter.configure(
+            system_prompt="Test system prompt",
+            allowed_tools=["Read", "Write"],
+            disallowed_tools=["Bash"]
+        )
+        
+        self.assertEqual(adapter._system_prompt, "Test system prompt")
+        self.assertEqual(adapter._allowed_tools, ["Read", "Write"])
+        self.assertEqual(adapter._disallowed_tools, ["Bash"])
 
 
 class TestQChatAdapter(unittest.TestCase):
@@ -171,6 +191,50 @@ class TestGeminiAdapter(unittest.TestCase):
         # Over 1M tokens should have cost
         cost = adapter._calculate_cost(2000000)
         self.assertGreater(cost, 0)
+
+
+class TestAsyncClaudeAdapter(unittest.IsolatedAsyncioTestCase):
+    """Test async functionality of Claude adapter."""
+    
+    @patch('ralph_orchestrator.adapters.claude.CLAUDE_SDK_AVAILABLE', True)
+    @patch('ralph_orchestrator.adapters.claude.query')
+    async def test_aexecute_success(self, mock_query):
+        """Test successful async execution."""
+        # Mock async iterator
+        async def mock_async_gen():
+            yield "Test async response"
+        
+        mock_query.return_value = mock_async_gen()
+        
+        adapter = ClaudeAdapter()
+        response = await adapter.aexecute("Test prompt")
+        
+        self.assertTrue(response.success)
+        self.assertEqual(response.output, "Test async response")
+    
+    @patch('ralph_orchestrator.adapters.claude.CLAUDE_SDK_AVAILABLE', True)
+    @patch('ralph_orchestrator.adapters.claude.query')
+    async def test_aexecute_with_tokens(self, mock_query):
+        """Test async execution with token counting."""
+        # Mock message with token usage
+        class MockMessage:
+            def __init__(self):
+                self.text = "Response with tokens"
+                self.usage = MagicMock()
+                self.usage.total_tokens = 100
+        
+        async def mock_async_gen():
+            yield MockMessage()
+        
+        mock_query.return_value = mock_async_gen()
+        
+        adapter = ClaudeAdapter()
+        response = await adapter.aexecute("Test prompt")
+        
+        self.assertTrue(response.success)
+        self.assertEqual(response.output, "Response with tokens")
+        self.assertEqual(response.tokens_used, 100)
+        self.assertIsNotNone(response.cost)
 
 
 if __name__ == "__main__":

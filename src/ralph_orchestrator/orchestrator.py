@@ -9,6 +9,7 @@ import time
 import signal
 import logging
 import subprocess
+import asyncio
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
 from dataclasses import dataclass, field
@@ -36,19 +37,20 @@ class RalphOrchestrator:
     
     def __init__(
         self,
-        prompt_file: str = "PROMPT.md",
+        prompt_file_or_config = None,
         primary_tool: str = "claude",
         max_iterations: int = 100,
         max_runtime: int = 14400,
         track_costs: bool = False,
         max_cost: float = 10.0,
         checkpoint_interval: int = 5,
-        archive_dir: str = "./prompts/archive"
+        archive_dir: str = "./prompts/archive",
+        verbose: bool = False
     ):
         """Initialize the orchestrator.
         
         Args:
-            prompt_file: Path to the prompt file
+            prompt_file_or_config: Path to prompt file or RalphConfig object
             primary_tool: Primary AI tool to use (claude, qchat, gemini)
             max_iterations: Maximum number of iterations
             max_runtime: Maximum runtime in seconds
@@ -56,15 +58,32 @@ class RalphOrchestrator:
             max_cost: Maximum allowed cost
             checkpoint_interval: Git checkpoint frequency
             archive_dir: Directory for prompt archives
+            verbose: Enable verbose logging output
         """
-        self.prompt_file = Path(prompt_file)
-        self.primary_tool = primary_tool
-        self.max_iterations = max_iterations
-        self.max_runtime = max_runtime
-        self.track_costs = track_costs
-        self.max_cost = max_cost
-        self.checkpoint_interval = checkpoint_interval
-        self.archive_dir = Path(archive_dir)
+        # Handle both config object and individual parameters
+        if hasattr(prompt_file_or_config, 'prompt_file'):
+            # It's a config object
+            config = prompt_file_or_config
+            self.prompt_file = Path(config.prompt_file)
+            self.primary_tool = config.agent.value if hasattr(config.agent, 'value') else str(config.agent)
+            self.max_iterations = config.max_iterations
+            self.max_runtime = config.max_runtime
+            self.track_costs = hasattr(config, 'max_cost') and config.max_cost > 0
+            self.max_cost = config.max_cost if hasattr(config, 'max_cost') else max_cost
+            self.checkpoint_interval = config.checkpoint_interval
+            self.archive_dir = Path(config.archive_dir if hasattr(config, 'archive_dir') else archive_dir)
+            self.verbose = config.verbose if hasattr(config, 'verbose') else False
+        else:
+            # Individual parameters
+            self.prompt_file = Path(prompt_file_or_config if prompt_file_or_config else "PROMPT.md")
+            self.primary_tool = primary_tool
+            self.max_iterations = max_iterations
+            self.max_runtime = max_runtime
+            self.track_costs = track_costs
+            self.max_cost = max_cost
+            self.checkpoint_interval = checkpoint_interval
+            self.archive_dir = Path(archive_dir)
+            self.verbose = verbose
         
         # Initialize components
         self.metrics = Metrics()
@@ -96,12 +115,12 @@ class RalphOrchestrator:
         
         # Try to initialize each adapter
         try:
-            adapter = ClaudeAdapter()
+            adapter = ClaudeAdapter(verbose=self.verbose)
             if adapter.available:
                 adapters['claude'] = adapter
                 logger.info("Claude adapter initialized")
             else:
-                logger.warning("Claude CLI not available")
+                logger.warning("Claude SDK not available")
         except Exception as e:
             logger.warning(f"Claude adapter error: {e}")
         
@@ -134,6 +153,16 @@ class RalphOrchestrator:
     
     def run(self) -> None:
         """Run the main orchestration loop."""
+        # Create event loop if needed and run async version
+        try:
+            asyncio.run(self.arun())
+        except RuntimeError:
+            # If loop already exists, use it
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.arun())
+    
+    async def arun(self) -> None:
+        """Run the main orchestration loop asynchronously."""
         logger.info("Starting Ralph orchestration loop")
         start_time = time.time()
         
@@ -159,7 +188,7 @@ class RalphOrchestrator:
             logger.info(f"Starting iteration {self.metrics.iterations}")
             
             try:
-                success = self._execute_iteration()
+                success = await self._aexecute_iteration()
                 
                 if success:
                     self.metrics.successful_iterations += 1
@@ -177,7 +206,7 @@ class RalphOrchestrator:
                 self._handle_error(e)
             
             # Brief pause between iterations
-            time.sleep(2)
+            await asyncio.sleep(2)
         
         # Final summary
         self._print_summary()
@@ -203,12 +232,21 @@ class RalphOrchestrator:
         return False
     
     def _execute_iteration(self) -> bool:
-        """Execute a single iteration."""
+        """Execute a single iteration (sync wrapper)."""
+        try:
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(self._aexecute_iteration())
+        except RuntimeError:
+            # Create new event loop if needed
+            return asyncio.run(self._aexecute_iteration())
+    
+    async def _aexecute_iteration(self) -> bool:
+        """Execute a single iteration asynchronously."""
         # Get the current prompt
         prompt = self.context_manager.get_prompt()
         
         # Try primary adapter with prompt file path
-        response = self.current_adapter.execute(
+        response = await self.current_adapter.aexecute(
             prompt, 
             prompt_file=str(self.prompt_file)
         )
@@ -218,7 +256,7 @@ class RalphOrchestrator:
             for name, adapter in self.adapters.items():
                 if adapter != self.current_adapter:
                     logger.info(f"Falling back to {name}")
-                    response = adapter.execute(
+                    response = await adapter.aexecute(
                         prompt,
                         prompt_file=str(self.prompt_file)
                     )
