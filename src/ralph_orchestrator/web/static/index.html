@@ -783,10 +783,32 @@
 
     <script>
         // Immediate authentication check - prevent any code execution if not authenticated
-        (function() {
+        (async function() {
             const token = localStorage.getItem('ralph_auth_token');
             if (!token) {
                 console.log('No auth token found, redirecting to login immediately');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // Verify token validity immediately
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.log('Token verification failed immediately, redirecting to login');
+                    localStorage.removeItem('ralph_auth_token');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                console.log('Token verified successfully');
+            } catch (error) {
+                console.error('Immediate token verification failed:', error);
+                localStorage.removeItem('ralph_auth_token');
                 window.location.href = '/login.html';
                 return;
             }
