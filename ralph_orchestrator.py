@@ -11,11 +11,19 @@ import signal
 import logging
 import argparse
 import hashlib
+import platform
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
+
+# Optional monitoring dependencies
+try:
+    import psutil
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
 
 # Configuration defaults
 DEFAULT_MAX_ITERATIONS = 100
@@ -27,6 +35,7 @@ DEFAULT_MAX_TOKENS = 1000000  # 1M tokens total
 DEFAULT_MAX_COST = 50.0  # $50 USD
 DEFAULT_CONTEXT_WINDOW = 200000  # 200K token context window
 DEFAULT_CONTEXT_THRESHOLD = 0.8  # Trigger summarization at 80% of context
+DEFAULT_METRICS_INTERVAL = 10  # Log metrics every 10 iterations
 
 # Token costs per million (approximate)
 TOKEN_COSTS = {
@@ -69,6 +78,8 @@ class RalphConfig:
     max_cost: float = DEFAULT_MAX_COST
     context_window: int = DEFAULT_CONTEXT_WINDOW
     context_threshold: float = DEFAULT_CONTEXT_THRESHOLD
+    metrics_interval: int = DEFAULT_METRICS_INTERVAL
+    enable_metrics: bool = True
     agent_args: List[str] = field(default_factory=list)
 
 @dataclass
@@ -168,6 +179,106 @@ Mark the end with: TASK_COMPLETE if done, or continue normally.
         
         return True, summary_path
 
+class MetricsCollector:
+    """Collects and reports system and application metrics"""
+    
+    def __init__(self, enabled: bool = True):
+        self.enabled = enabled and METRICS_AVAILABLE
+        self.metrics_history = []
+        self.start_time = time.time()
+        
+        if enabled and not METRICS_AVAILABLE:
+            logger.warning("Metrics requested but psutil not installed. Run: pip install psutil")
+        
+    def collect_system_metrics(self) -> Dict[str, Any]:
+        """Collect current system metrics"""
+        if not self.enabled:
+            return {}
+            
+        try:
+            import psutil
+            process = psutil.Process()
+            return {
+                'timestamp': datetime.now().isoformat(),
+                'cpu_percent': psutil.cpu_percent(interval=0.1),
+                'memory': {
+                    'percent': psutil.virtual_memory().percent,
+                    'used_gb': psutil.virtual_memory().used / (1024**3),
+                    'available_gb': psutil.virtual_memory().available / (1024**3)
+                },
+                'process': {
+                    'cpu_percent': process.cpu_percent(),
+                    'memory_mb': process.memory_info().rss / (1024**2),
+                    'num_threads': process.num_threads()
+                },
+                'disk': {
+                    'usage_percent': psutil.disk_usage('/').percent,
+                    'free_gb': psutil.disk_usage('/').free / (1024**3)
+                }
+            }
+        except Exception as e:
+            logger.debug(f"Failed to collect system metrics: {e}")
+            return {}
+    
+    def record_iteration_metrics(self, iteration: int, duration: float, 
+                                tokens: int, cost: float, success: bool):
+        """Record metrics for an iteration"""
+        if not self.enabled:
+            return
+            
+        metrics = {
+            'iteration': iteration,
+            'duration_seconds': duration,
+            'tokens_used': tokens,
+            'cost_usd': cost,
+            'success': success,
+            'system': self.collect_system_metrics(),
+            'uptime_seconds': time.time() - self.start_time
+        }
+        
+        self.metrics_history.append(metrics)
+        
+    def get_summary(self) -> Dict[str, Any]:
+        """Get summary of collected metrics"""
+        if not self.metrics_history:
+            return {}
+            
+        total_iterations = len(self.metrics_history)
+        successful = sum(1 for m in self.metrics_history if m.get('success', False))
+        
+        summary = {
+            'total_iterations': total_iterations,
+            'successful_iterations': successful,
+            'success_rate': successful / total_iterations if total_iterations > 0 else 0,
+            'total_duration_seconds': sum(m['duration_seconds'] for m in self.metrics_history),
+            'average_duration_seconds': sum(m['duration_seconds'] for m in self.metrics_history) / total_iterations,
+            'total_tokens': sum(m['tokens_used'] for m in self.metrics_history),
+            'total_cost_usd': sum(m['cost_usd'] for m in self.metrics_history),
+            'system_info': {
+                'platform': platform.platform(),
+                'python_version': platform.python_version()
+            }
+        }
+        
+        if METRICS_AVAILABLE:
+            import psutil
+            summary['system_info']['cpu_count'] = psutil.cpu_count()
+            
+        return summary
+    
+    def save_metrics(self, path: Path):
+        """Save metrics to file"""
+        if not self.enabled or not self.metrics_history:
+            return
+            
+        metrics_data = {
+            'summary': self.get_summary(),
+            'history': self.metrics_history
+        }
+        
+        path.write_text(json.dumps(metrics_data, indent=2))
+        logger.debug(f"Saved metrics to {path}")
+
 class RalphOrchestrator:
     """Main orchestrator for Ralph Wiggum technique"""
     
@@ -183,6 +294,8 @@ class RalphOrchestrator:
             config.context_window,
             config.context_threshold
         )
+        self.metrics_collector = MetricsCollector(config.enable_metrics)
+        self.iteration_start_time = None
         self.setup_signal_handlers()
         self.setup_directories()
         
@@ -270,6 +383,7 @@ class RalphOrchestrator:
     def run_iteration(self) -> bool:
         """Run a single iteration of the Ralph loop"""
         self.iteration_count += 1
+        self.iteration_start_time = time.time()
         
         # Check token and cost limits before running
         if not self.token_metrics.is_within_limits(self.config.max_tokens, self.config.max_cost):
@@ -316,6 +430,19 @@ class RalphOrchestrator:
             # Track token usage and context
             self.token_metrics.add_iteration(input_tokens, output_tokens, self.current_agent)
             self.context_manager.add_to_history(Path(self.config.prompt_file))
+            
+            # Record metrics
+            iteration_duration = time.time() - self.iteration_start_time
+            iteration_tokens = input_tokens + output_tokens
+            iteration_cost = self.token_metrics.iterations[-1]['cost'] if self.token_metrics.iterations else 0
+            self.metrics_collector.record_iteration_metrics(
+                self.iteration_count, iteration_duration, iteration_tokens, 
+                iteration_cost, result.returncode == 0
+            )
+            
+            # Log metrics periodically
+            if self.iteration_count % self.config.metrics_interval == 0:
+                self.log_metrics()
             
             if result.returncode != 0:
                 error_msg = f"Agent failed with code {result.returncode}: {result.stderr}"
@@ -395,6 +522,7 @@ class RalphOrchestrator:
                 'total_tokens': self.token_metrics.get_total_tokens(),
                 'iterations': self.token_metrics.iterations
             },
+            'metrics_summary': self.metrics_collector.get_summary(),
             'config': {
                 'agent': self.config.agent.value,
                 'prompt_file': self.config.prompt_file,
@@ -406,9 +534,14 @@ class RalphOrchestrator:
             }
         }
         
-        state_file = Path(f".agent/metrics/state_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        state_file = Path(f".agent/metrics/state_{timestamp}.json")
         state_file.write_text(json.dumps(state, indent=2))
         logger.info(f"Saved state to {state_file}")
+        
+        # Save detailed metrics
+        metrics_file = Path(f".agent/metrics/metrics_{timestamp}.json")
+        self.metrics_collector.save_metrics(metrics_file)
         
     def should_continue(self) -> bool:
         """Check if loop should continue"""
@@ -435,6 +568,20 @@ class RalphOrchestrator:
             return False
             
         return True
+    
+    def log_metrics(self):
+        """Log current metrics summary"""
+        summary = self.metrics_collector.get_summary()
+        if summary:
+            logger.info(f"Metrics: {summary['successful_iterations']}/{summary['total_iterations']} successful, "
+                       f"avg {summary['average_duration_seconds']:.1f}s/iteration, "
+                       f"${summary['total_cost_usd']:.2f} total cost")
+            
+            # Log system metrics
+            current_metrics = self.metrics_collector.collect_system_metrics()
+            if current_metrics:
+                logger.debug(f"System: CPU {current_metrics['cpu_percent']:.1f}%, "
+                           f"Memory {current_metrics['memory']['percent']:.1f}%")
         
     def run(self):
         """Main orchestration loop"""
@@ -445,6 +592,8 @@ class RalphOrchestrator:
         logger.info(f"Max tokens: {self.config.max_tokens:,}")
         logger.info(f"Max cost: ${self.config.max_cost:.2f}")
         logger.info(f"Context window: {self.config.context_window:,} tokens")
+        if self.config.enable_metrics:
+            logger.info(f"Metrics collection enabled (interval: {self.config.metrics_interval})")
         
         while self.should_continue():
             result = self.run_iteration()
@@ -465,6 +614,13 @@ class RalphOrchestrator:
         # Loop ended without completion
         logger.warning("Loop ended without task completion")
         logger.info(f"Final usage: {self.token_metrics.get_total_tokens():,} tokens, ${self.token_metrics.total_cost:.2f}")
+        
+        # Log final metrics
+        summary = self.metrics_collector.get_summary()
+        if summary:
+            logger.info(f"Final metrics: {summary['successful_iterations']}/{summary['total_iterations']} iterations succeeded")
+            logger.info(f"Total runtime: {summary['total_duration_seconds']:.1f}s")
+        
         self.save_state()
         return 1
 
@@ -546,6 +702,19 @@ def main():
     )
     
     parser.add_argument(
+        "--metrics-interval",
+        type=int,
+        default=DEFAULT_METRICS_INTERVAL,
+        help=f"Metrics logging interval (default: {DEFAULT_METRICS_INTERVAL})"
+    )
+    
+    parser.add_argument(
+        "--no-metrics",
+        action="store_true",
+        help="Disable metrics collection"
+    )
+    
+    parser.add_argument(
         "--no-git",
         action="store_true",
         help="Disable git checkpointing"
@@ -597,6 +766,8 @@ def main():
         max_cost=args.max_cost,
         context_window=args.context_window,
         context_threshold=args.context_threshold,
+        metrics_interval=args.metrics_interval,
+        enable_metrics=not args.no_metrics,
         agent_args=args.agent_args
     )
     
