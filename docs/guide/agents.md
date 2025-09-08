@@ -38,13 +38,16 @@ python ralph_orchestrator.py --agent claude
 
 ### Q Chat
 
-Q Chat is a cost-effective AI assistant suitable for many general tasks.
+Q Chat is a cost-effective AI assistant suitable for many general tasks, now with production-ready adapter implementation.
 
 **Strengths:**
 - Good general-purpose capabilities
-- Fast response times
+- Fast response times with streaming support
 - Cost-effective for simple tasks
 - Reliable for straightforward operations
+- Thread-safe concurrent message processing
+- Robust error handling and recovery
+- Graceful shutdown and resource cleanup
 
 **Best For:**
 - Simple coding tasks
@@ -52,6 +55,8 @@ Q Chat is a cost-effective AI assistant suitable for many general tasks.
 - Data processing
 - Quick prototypes
 - Budget-conscious operations
+- High-concurrency workloads
+- Long-running batch processes
 
 **Installation:**
 ```bash
@@ -61,7 +66,19 @@ pip install q-cli
 **Usage:**
 ```bash
 python ralph_orchestrator.py --agent q
+
+# Short form
+python ralph_orchestrator.py -a q
 ```
+
+**Production Features:**
+- **Message Queue**: Thread-safe async message processing
+- **Error Recovery**: Automatic retry with exponential backoff
+- **Signal Handling**: Graceful shutdown on SIGINT/SIGTERM
+- **Resource Management**: Proper cleanup of processes and threads
+- **Timeout Handling**: Configurable timeouts with partial output preservation
+- **Non-blocking I/O**: Prevents deadlocks in pipe communication
+- **Concurrent Processing**: Handles multiple requests simultaneously
 
 **Cost:**
 - Input: $0.50 per million tokens (estimated)
@@ -186,6 +203,32 @@ python ralph_orchestrator.py --agent q
 python ralph_orchestrator.py \
   --agent q \
   --agent-args "--context-length 50000"
+
+# Production configuration with enhanced settings
+python ralph_orchestrator.py \
+  --agent q \
+  --max-iterations 100 \
+  --retry-delay 2 \
+  --checkpoint-interval 10 \
+  --verbose
+
+# High-concurrency configuration
+python ralph_orchestrator.py \
+  --agent q \
+  --agent-args "--async --timeout 300" \
+  --max-iterations 200
+```
+
+**Environment Variables:**
+```bash
+# Set Q chat timeout (default: 120 seconds)
+export QCHAT_TIMEOUT=300
+
+# Enable verbose logging
+export QCHAT_VERBOSE=1
+
+# Configure retry attempts
+export QCHAT_MAX_RETRIES=5
 ```
 
 ### Gemini Configuration
@@ -219,17 +262,48 @@ python ralph_orchestrator.py \
 
 ### Q Chat Features
 
-- **Speed**: Fast response times
-- **Efficiency**: Lower resource usage
+- **Speed**: Fast response times with streaming support
+- **Efficiency**: Lower resource usage with optimized memory management
 - **Simplicity**: Straightforward for basic tasks
+- **Concurrency**: Thread-safe operations for parallel processing
+- **Reliability**: Automatic error recovery and retry mechanisms
+- **Production-Ready**: Signal handling, graceful shutdown, resource cleanup
 
+**Production Capabilities:**
 ```bash
 # Quick iterations with Q
 python ralph_orchestrator.py \
   --agent q \
   --max-iterations 100 \
   --retry-delay 1
+
+# Async execution with timeout
+python ralph_orchestrator.py \
+  --agent q \
+  --agent-args "--async --timeout 300" \
+  --checkpoint-interval 10
+
+# Stress testing configuration
+python ralph_orchestrator.py \
+  --agent q \
+  --max-iterations 500 \
+  --metrics-interval 10 \
+  --verbose
+
+# Long-running batch processing
+python ralph_orchestrator.py \
+  --agent q \
+  --checkpoint-interval 5 \
+  --max-cost 50.0 \
+  --retry-delay 5
 ```
+
+**Monitoring and Logging:**
+- Thread-safe logging for concurrent operations
+- Detailed error messages with stack traces
+- Performance metrics collection
+- Resource usage tracking
+- Message queue status monitoring
 
 ### Gemini Features
 
