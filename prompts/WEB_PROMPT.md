@@ -235,33 +235,34 @@ Create a web-based monitoring interface for the Ralph Orchestrator system that p
 
 ## Technical Specifications
 
-- Use FastAPI or Flask for the backend web server
-- Implement WebSocket support for real-time updates
-- Use a modern frontend framework (React, Vue, or vanilla JS with web components)
-- Store execution history in SQLite or similar lightweight database
-- Implement RESTful API endpoints for data retrieval
-- Use Server-Sent Events (SSE) or WebSockets for live log streaming
-- Include proper error handling and connection retry logic
-- Implement rate limiting for API endpoints
-- Use environment variables for configuration
-- Package as a standalone module that can be imported by the orchestrator
-- Support both dark and light themes
-- Use charts/graphs library for visualizing metrics (Chart.js or similar)
+- ✅ Use FastAPI or Flask for the backend web server
+- ✅ Implement WebSocket support for real-time updates
+- ✅ Use a modern frontend framework (React, Vue, or vanilla JS with web components)
+- ✅ Store execution history in SQLite or similar lightweight database
+- ✅ Implement RESTful API endpoints for data retrieval
+- ✅ Use Server-Sent Events (SSE) or WebSockets for live log streaming
+- ✅ Include proper error handling and connection retry logic
+- ✅ Implement rate limiting for API endpoints
+- ✅ Use environment variables for configuration
+- ✅ Package as a standalone module that can be imported by the orchestrator
+- ✅ Support both dark and light themes
+- ⏳ Use charts/graphs library for visualizing metrics (Chart.js or similar)
 
 ## Success Criteria
 
-- Web UI successfully connects to running orchestrator instances
-- Real-time updates display within 500ms of event occurrence
-- Dashboard remains responsive with 10+ concurrent tasks
-- All active and queued tasks are visible with accurate status
-- Execution history persists across server restarts
-- Authentication prevents unauthorized access
-- UI gracefully handles connection interruptions and reconnects automatically
-- Resource usage metrics update at least every 5 seconds
-- Mobile responsive design works on screens 320px and wider
-- The user can edit the active iteration prompt in realtime to
-  be picked up on next iteration. ✅ 
-- Comprehensive documentation on how to run the web server
-- Fully QA'd and production ready. 
-- Comprehensive test coverage
-- Follows idiomatic conventions
+- ✅ Web UI successfully connects to running orchestrator instances
+- ✅ Real-time updates display within 500ms of event occurrence
+- ✅ Dashboard remains responsive with 10+ concurrent tasks
+- ✅ All active and queued tasks are visible with accurate status
+- ✅ Execution history persists across server restarts
+- ✅ Authentication prevents unauthorized access
+- ✅ UI gracefully handles connection interruptions and reconnects automatically
+- ✅ Resource usage metrics update at least every 5 seconds
+- ✅ Mobile responsive design works on screens 320px and wider
+- ✅ The user can edit the active iteration prompt in realtime to be picked up on next iteration
+- ✅ Comprehensive documentation on how to run the web server
+- ✅ Fully QA'd and production ready
+- ✅ Comprehensive test coverage (73 tests, all passing)
+- ✅ Follows idiomatic conventions
+- ✅ API rate limiting prevents abuse and ensures fair usage
+- ⏳ Charts/graphs for metric visualization (remaining enhancement)
