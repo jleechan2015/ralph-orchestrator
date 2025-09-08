@@ -4,6 +4,86 @@ Complete API documentation for the Ralph Orchestrator core module.
 
 ## Module: `ralph_orchestrator`
 
+The main orchestration module that coordinates AI agent execution.
+
+## Classes
+
+### `RalphOrchestrator`
+
+Main orchestrator class managing the execution loop.
+
+```python
+class RalphOrchestrator:
+    def __init__(self, config: RalphConfig):
+        """Initialize the orchestrator with configuration."""
+```
+
+#### Methods
+
+##### `run()`
+
+```python
+def run(self) -> Dict[str, Any]:
+    """
+    Run the orchestration loop until completion or limits reached.
+    
+    Returns:
+        Dict containing final metrics and status
+    """
+```
+
+### `RalphConfig`
+
+Configuration dataclass for the orchestrator.
+
+```python
+@dataclass
+class RalphConfig:
+    agent: AgentType = AgentType.AUTO
+    prompt_file: str = "PROMPT.md"
+    max_iterations: int = 100
+    max_runtime: int = 14400
+    # ... additional fields
+```
+
+### `AgentType`
+
+```python
+class AgentType(Enum):
+    CLAUDE = "claude"
+    Q = "q"
+    GEMINI = "gemini"
+    AUTO = "auto"
+```
+
+## Functions
+
+### `main()`
+
+Entry point for CLI execution.
+
+```python
+def main() -> int:
+    """Main entry point for CLI execution."""
+```
+
+### `detect_agent()`
+
+```python
+def detect_agent() -> Optional[AgentType]:
+    """Detect available AI agent."""
+```
+
+## Usage Examples
+
+```python
+from ralph_orchestrator import RalphOrchestrator, RalphConfig
+
+config = RalphConfig(agent=AgentType.CLAUDE)
+orchestrator = RalphOrchestrator(config)
+result = orchestrator.run()
+```
+
 The main orchestration module that implements the Ralph Wiggum technique.
 
 ### Classes
