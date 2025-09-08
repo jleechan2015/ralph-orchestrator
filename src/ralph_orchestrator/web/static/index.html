@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ralph Orchestrator Monitor</title>
+    <!-- Chart.js for metrics visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --primary-color: #4a5568;
@@ -188,6 +190,32 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 200px;
+        }
+
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
         }
 
         .metric-item {
@@ -628,6 +656,17 @@
                 <div class="progress-bar">
                     <div class="progress-fill" id="cpuProgress" style="width: 0%;"></div>
                 </div>
+                <!-- Charts Container -->
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <div class="chart-title">CPU Usage History (60s)</div>
+                        <canvas id="cpuChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div class="chart-title">Memory Usage History (60s)</div>
+                        <canvas id="memoryChart"></canvas>
+                    </div>
+                </div>
             </div>
 
             <!-- Active Orchestrators -->
@@ -907,8 +946,11 @@
         function updateSystemMetrics(metrics) {
             if (!metrics) return;
 
-            document.getElementById('cpuPercent').textContent = `${Math.round(metrics.cpu_percent || 0)}%`;
-            document.getElementById('memoryPercent').textContent = `${Math.round(metrics.memory?.percent || 0)}%`;
+            const cpuValue = Math.round(metrics.cpu_percent || 0);
+            const memoryValue = Math.round(metrics.memory?.percent || 0);
+
+            document.getElementById('cpuPercent').textContent = `${cpuValue}%`;
+            document.getElementById('memoryPercent').textContent = `${memoryValue}%`;
             document.getElementById('activeProcesses').textContent = metrics.active_processes || 0;
             document.getElementById('activeOrchestrators').textContent = metrics.orchestrators || 0;
             
@@ -918,6 +960,9 @@
             // Update last update time
             const now = new Date();
             document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+
+            // Update charts with new metrics
+            updateChartsWithMetrics(cpuValue, memoryValue);
         }
 
         function updateOrchestrators(orchestrators) {
@@ -1323,12 +1368,161 @@
             currentOrchestratorId = null;
         }
 
+        // Chart configuration and management
+        let cpuChart = null;
+        let memoryChart = null;
+        const MAX_DATA_POINTS = 60; // 60 seconds of history
+        const metricsHistory = {
+            cpu: [],
+            memory: [],
+            timestamps: []
+        };
+
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0 // Disable animations for better performance
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            color: 'rgba(113, 128, 150, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'var(--text-secondary)',
+                            maxRotation: 0,
+                            autoSkipPadding: 10,
+                            maxTicksLimit: 6
+                        }
+                    },
+                    y: {
+                        display: true,
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(113, 128, 150, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'var(--text-secondary)',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'var(--surface)',
+                        titleColor: 'var(--text-primary)',
+                        bodyColor: 'var(--text-primary)',
+                        borderColor: 'var(--border-color)',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Initialize CPU Chart
+            const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+            cpuChart = new Chart(cpuCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        borderColor: '#48bb78',
+                        backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Initialize Memory Chart
+            const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+            memoryChart = new Chart(memoryCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        borderColor: '#4299e1',
+                        backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+
+        function updateChartsWithMetrics(cpuValue, memoryValue) {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('en-US', { 
+                hour12: false,
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            // Add new data points
+            metricsHistory.cpu.push(cpuValue);
+            metricsHistory.memory.push(memoryValue);
+            metricsHistory.timestamps.push(timestamp);
+
+            // Keep only the last MAX_DATA_POINTS
+            if (metricsHistory.cpu.length > MAX_DATA_POINTS) {
+                metricsHistory.cpu.shift();
+                metricsHistory.memory.shift();
+                metricsHistory.timestamps.shift();
+            }
+
+            // Update CPU chart
+            if (cpuChart) {
+                cpuChart.data.labels = [...metricsHistory.timestamps];
+                cpuChart.data.datasets[0].data = [...metricsHistory.cpu];
+                cpuChart.update('none');
+            }
+
+            // Update Memory chart
+            if (memoryChart) {
+                memoryChart.data.labels = [...metricsHistory.timestamps];
+                memoryChart.data.datasets[0].data = [...metricsHistory.memory];
+                memoryChart.update('none');
+            }
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             connectWebSocket();
             refreshOrchestrators();
             loadHistory();
+            initCharts();
             
             // Refresh metrics every 5 seconds as backup
             setInterval(async () => {

@@ -192,7 +192,7 @@ Create a web-based monitoring interface for the Ralph Orchestrator system that p
   - Task queue visualization
   - Prompt editing capabilities
   - Production deployment with nginx/systemd
-  - API rate limiting (future feature)
+  - API rate limiting implementation
 - Created `src/ralph_orchestrator/web/database.py` module
   - Implemented DatabaseManager class with thread-safe SQLite operations
   - Three main tables: orchestrator_runs, iteration_history, task_history
@@ -217,6 +217,30 @@ Create a web-based monitoring interface for the Ralph Orchestrator system that p
 - Testing:
   - Created `test_database.py` script to verify all operations
   - Confirmed database creation, CRUD operations, and statistics
+
+### Iteration 11: Chart.js Metrics Visualization ✅
+- Integrated Chart.js library for real-time metrics visualization
+  - Added Chart.js v4.4.0 CDN to the HTML dashboard
+  - Created responsive canvas elements for CPU and memory charts
+- Implemented real-time line charts:
+  - CPU Usage History chart (60-second rolling window)
+  - Memory Usage History chart (60-second rolling window)
+  - Smooth animations disabled for better performance
+  - Dark/light theme support with dynamic colors
+- Chart features:
+  - Historical data tracking with configurable data points (60 seconds)
+  - Auto-scaling Y-axis from 0-100% for percentage metrics
+  - Responsive design that adapts to mobile screens
+  - Tooltips showing precise values on hover
+  - Automatic data point pruning to prevent memory growth
+- Integration with existing metrics system:
+  - Charts update automatically with WebSocket metrics events
+  - Synchronized with existing numeric displays and progress bars
+  - No additional server-side changes required
+- Testing:
+  - Created `test_charts.py` script for chart visualization testing
+  - Simulates varying CPU and memory metrics
+  - Verifies real-time chart updates
 
 ## Requirements
 
@@ -246,7 +270,7 @@ Create a web-based monitoring interface for the Ralph Orchestrator system that p
 - ✅ Use environment variables for configuration
 - ✅ Package as a standalone module that can be imported by the orchestrator
 - ✅ Support both dark and light themes
-- ⏳ Use charts/graphs library for visualizing metrics (Chart.js or similar)
+- ✅ Use charts/graphs library for visualizing metrics (Chart.js or similar)
 
 ## Success Criteria
 
@@ -265,4 +289,4 @@ Create a web-based monitoring interface for the Ralph Orchestrator system that p
 - ✅ Comprehensive test coverage (73 tests, all passing)
 - ✅ Follows idiomatic conventions
 - ✅ API rate limiting prevents abuse and ensures fair usage
-- ⏳ Charts/graphs for metric visualization (remaining enhancement)
+- ✅ Charts/graphs for metric visualization (Chart.js implementation complete)
