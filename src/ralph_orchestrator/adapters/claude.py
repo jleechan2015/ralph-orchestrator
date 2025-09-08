@@ -12,7 +12,7 @@ from .base import ToolAdapter, ToolResponse
 logger = logging.getLogger(__name__)
 
 try:
-    from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions, query
+    from claude_code_sdk import ClaudeCodeOptions, query
     CLAUDE_SDK_AVAILABLE = True
 except ImportError:
     CLAUDE_SDK_AVAILABLE = False
@@ -100,7 +100,6 @@ class ClaudeAdapter(ToolAdapter):
         try:
             # Get configuration from kwargs or use defaults
             prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
-            timeout = kwargs.get("timeout", 300)
             
             # Build options for Claude Code
             options_dict = {}

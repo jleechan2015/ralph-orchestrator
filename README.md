@@ -33,6 +33,7 @@ Based on the Ralph Wiggum technique by [Geoffrey Huntley](https://ghuntley.com/r
 
 - 🤖 **Multiple AI Agent Support**: Works with Claude, Q Chat, and Gemini CLI tools
 - 🔍 **Auto-detection**: Automatically detects which AI agents are available
+- 🌐 **WebSearch Support**: Claude can search the web for current information (NEW!)
 - 💾 **Checkpointing**: Git-based checkpointing for recovery and history
 - 📚 **Prompt Archiving**: Tracks prompt evolution over iterations
 - 🔄 **Error Recovery**: Automatic retry with exponential backoff

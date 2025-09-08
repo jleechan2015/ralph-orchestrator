@@ -12,8 +12,7 @@ import shutil
 from pathlib import Path
 import logging
 import subprocess
-import tempfile
-from typing import Optional, List
+from typing import List
 
 # Import the proper orchestrator with adapter support
 from .orchestrator import RalphOrchestrator
@@ -99,10 +98,10 @@ def show_status():
     
     # Check for PROMPT.md
     if Path("PROMPT.md").exists():
-        print(f"Prompt: PROMPT.md exists")
-        print(f"Status: IN PROGRESS")
+        print("Prompt: PROMPT.md exists")
+        print("Status: IN PROGRESS")
     else:
-        print(f"Prompt: PROMPT.md not found")
+        print("Prompt: PROMPT.md not found")
     
     # Check iterations from metrics
     metrics_dir = Path(".agent/metrics")
@@ -178,7 +177,6 @@ def generate_prompt(rough_ideas: List[str], output_file: str = "PROMPT.md", inte
         return
     
     # Determine the project root and create prompts directory
-    import os
     current_dir = Path(os.getcwd())
     
     # Parse the output file path
@@ -657,7 +655,7 @@ Examples:
     
     if config.dry_run:
         print("Dry run mode - no tools will be executed")
-        print(f"Configuration:")
+        print("Configuration:")
         print(f"  Prompt: {config.prompt_file}")
         print(f"  Agent: {config.agent.value}")
         print(f"  Max iterations: {config.max_iterations}")
@@ -683,11 +681,11 @@ Examples:
     
     try:
         # Create and run orchestrator
-        print(f"Starting Ralph Orchestrator...")
+        print("Starting Ralph Orchestrator...")
         print(f"Agent: {config.agent.value}")
         print(f"Prompt: {config.prompt_file}")
         print(f"Max iterations: {config.max_iterations}")
-        print(f"Press Ctrl+C to stop gracefully")
+        print("Press Ctrl+C to stop gracefully")
         print("=" * 50)
         
         # Convert RalphConfig to individual parameters for the proper orchestrator
