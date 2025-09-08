@@ -22,6 +22,15 @@ DEFAULT_MAX_RUNTIME = 14400  # 4 hours
 DEFAULT_PROMPT_FILE = "PROMPT.md"
 DEFAULT_CHECKPOINT_INTERVAL = 5
 DEFAULT_RETRY_DELAY = 2
+DEFAULT_MAX_TOKENS = 1000000  # 1M tokens total
+DEFAULT_MAX_COST = 50.0  # $50 USD
+
+# Token costs per million (approximate)
+TOKEN_COSTS = {
+    "claude": {"input": 3.0, "output": 15.0},  # Claude 3.5 Sonnet
+    "q": {"input": 0.5, "output": 1.5},  # Estimated
+    "gemini": {"input": 0.5, "output": 1.5}  # Gemini Pro
+}
 
 # Setup logging
 logging.basicConfig(
@@ -53,7 +62,43 @@ class RalphConfig:
     git_checkpoint: bool = True
     verbose: bool = False
     dry_run: bool = False
+    max_tokens: int = DEFAULT_MAX_TOKENS
+    max_cost: float = DEFAULT_MAX_COST
     agent_args: List[str] = field(default_factory=list)
+
+@dataclass
+class TokenMetrics:
+    """Token usage and cost tracking"""
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_cost: float = 0.0
+    iterations: List[Dict[str, Any]] = field(default_factory=list)
+    
+    def add_iteration(self, input_tokens: int, output_tokens: int, agent_type: str):
+        """Add token usage for an iteration"""
+        costs = TOKEN_COSTS.get(agent_type, {"input": 1.0, "output": 3.0})
+        iteration_cost = (input_tokens * costs["input"] / 1_000_000 + 
+                         output_tokens * costs["output"] / 1_000_000)
+        
+        self.input_tokens += input_tokens
+        self.output_tokens += output_tokens
+        self.total_cost += iteration_cost
+        
+        self.iterations.append({
+            "timestamp": datetime.now().isoformat(),
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cost": iteration_cost,
+            "cumulative_cost": self.total_cost
+        })
+    
+    def get_total_tokens(self) -> int:
+        """Get total token count"""
+        return self.input_tokens + self.output_tokens
+    
+    def is_within_limits(self, max_tokens: int, max_cost: float) -> bool:
+        """Check if within token and cost limits"""
+        return self.get_total_tokens() < max_tokens and self.total_cost < max_cost
 
 class RalphOrchestrator:
     """Main orchestrator for Ralph Wiggum technique"""
@@ -64,6 +109,8 @@ class RalphOrchestrator:
         self.start_time = time.time()
         self.errors = []
         self.checkpoints = []
+        self.token_metrics = TokenMetrics()
+        self.current_agent = None
         self.setup_signal_handlers()
         self.setup_directories()
         
@@ -113,6 +160,8 @@ class RalphOrchestrator:
         agent = self.config.agent
         if agent == AgentType.AUTO:
             agent = self.detect_agent()
+        
+        self.current_agent = agent.value
             
         prompt_file = Path(self.config.prompt_file)
         if not prompt_file.exists():
@@ -141,10 +190,22 @@ class RalphOrchestrator:
             return "TASK_COMPLETE" in content
         return False
         
+    def estimate_tokens(self, text: str) -> int:
+        """Estimate token count from text (rough approximation)"""
+        # Rough estimate: 1 token per 4 characters
+        return len(text) // 4
+    
     def run_iteration(self) -> bool:
         """Run a single iteration of the Ralph loop"""
         self.iteration_count += 1
+        
+        # Check token and cost limits before running
+        if not self.token_metrics.is_within_limits(self.config.max_tokens, self.config.max_cost):
+            logger.error(f"Token/cost limits exceeded: {self.token_metrics.get_total_tokens()} tokens, ${self.token_metrics.total_cost:.2f}")
+            return True  # Stop gracefully
+        
         logger.info(f"Iteration {self.iteration_count} starting...")
+        logger.info(f"Current usage: {self.token_metrics.get_total_tokens()} tokens, ${self.token_metrics.total_cost:.2f}")
         
         try:
             cmd = self.build_agent_command()
@@ -160,6 +221,14 @@ class RalphOrchestrator:
                 text=True,
                 timeout=300  # 5 minute timeout per iteration
             )
+            
+            # Estimate token usage from input/output
+            prompt_content = Path(self.config.prompt_file).read_text()
+            input_tokens = self.estimate_tokens(prompt_content)
+            output_tokens = self.estimate_tokens(result.stdout + result.stderr)
+            
+            # Track token usage
+            self.token_metrics.add_iteration(input_tokens, output_tokens, self.current_agent)
             
             if result.returncode != 0:
                 error_msg = f"Agent failed with code {result.returncode}: {result.stderr}"
@@ -232,11 +301,20 @@ class RalphOrchestrator:
             'runtime': time.time() - self.start_time,
             'errors': self.errors,
             'checkpoints': self.checkpoints,
+            'token_metrics': {
+                'input_tokens': self.token_metrics.input_tokens,
+                'output_tokens': self.token_metrics.output_tokens,
+                'total_cost': self.token_metrics.total_cost,
+                'total_tokens': self.token_metrics.get_total_tokens(),
+                'iterations': self.token_metrics.iterations
+            },
             'config': {
                 'agent': self.config.agent.value,
                 'prompt_file': self.config.prompt_file,
                 'max_iterations': self.config.max_iterations,
-                'max_runtime': self.config.max_runtime
+                'max_runtime': self.config.max_runtime,
+                'max_tokens': self.config.max_tokens,
+                'max_cost': self.config.max_cost
             }
         }
         
@@ -257,6 +335,11 @@ class RalphOrchestrator:
             logger.info(f"Reached max runtime ({self.config.max_runtime}s)")
             return False
             
+        # Check token and cost limits
+        if not self.token_metrics.is_within_limits(self.config.max_tokens, self.config.max_cost):
+            logger.warning(f"Approaching token/cost limits: {self.token_metrics.get_total_tokens()}/{self.config.max_tokens} tokens, ${self.token_metrics.total_cost:.2f}/${self.config.max_cost:.2f}")
+            return False
+            
         # Check for too many consecutive errors
         recent_errors = [e for e in self.errors if e['iteration'] > self.iteration_count - 5]
         if len(recent_errors) >= 5:
@@ -271,6 +354,8 @@ class RalphOrchestrator:
         logger.info(f"Prompt file: {self.config.prompt_file}")
         logger.info(f"Max iterations: {self.config.max_iterations}")
         logger.info(f"Max runtime: {self.config.max_runtime}s")
+        logger.info(f"Max tokens: {self.config.max_tokens:,}")
+        logger.info(f"Max cost: ${self.config.max_cost:.2f}")
         
         while self.should_continue():
             result = self.run_iteration()
@@ -290,6 +375,7 @@ class RalphOrchestrator:
                 
         # Loop ended without completion
         logger.warning("Loop ended without task completion")
+        logger.info(f"Final usage: {self.token_metrics.get_total_tokens():,} tokens, ${self.token_metrics.total_cost:.2f}")
         self.save_state()
         return 1
 
@@ -343,6 +429,20 @@ def main():
     )
     
     parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=DEFAULT_MAX_TOKENS,
+        help=f"Maximum total tokens (default: {DEFAULT_MAX_TOKENS:,})"
+    )
+    
+    parser.add_argument(
+        "--max-cost",
+        type=float,
+        default=DEFAULT_MAX_COST,
+        help=f"Maximum cost in USD (default: ${DEFAULT_MAX_COST:.2f})"
+    )
+    
+    parser.add_argument(
         "--no-git",
         action="store_true",
         help="Disable git checkpointing"
@@ -390,6 +490,8 @@ def main():
         git_checkpoint=not args.no_git,
         verbose=args.verbose,
         dry_run=args.dry_run,
+        max_tokens=args.max_tokens,
+        max_cost=args.max_cost,
         agent_args=args.agent_args
     )
     
