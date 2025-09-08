@@ -15,6 +15,10 @@
         <link rel="canonical" href="https://mikeyobrien.github.io/ralph-orchestrator/examples/bug-fix/">
       
       
+        <link rel="prev" href="../data-analysis/">
+      
+      
+        <link rel="next" href="../documentation/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
@@ -343,10 +347,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../" class="md-tabs__link">
           
   
@@ -1292,6 +1298,8 @@
       
   
   
+    
+  
   
   
     
@@ -1309,22 +1317,29 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -1341,13 +1356,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             Examples
@@ -1438,6 +1453,414 @@
   
   <span class="md-ellipsis">
     Data Analysis Script with Ralph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Bug Fixing Examples
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bug Fixing Examples
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-1-null-pointer-exception" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example 1: Null Pointer Exception
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 1: Null Pointer Exception">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem Code
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fix-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix Request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed Code
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-2-memory-leak-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example 2: Memory Leak Fix
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 2: Memory Leak Fix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-code_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem Code
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fix-request_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix Request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed-code_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed Code
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-3-race-condition-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example 3: Race Condition Fix
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 3: Race Condition Fix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-code_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem Code
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fix-request_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix Request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed-code_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed Code
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-4-sql-injection-vulnerability" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example 4: SQL Injection Vulnerability
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 4: SQL Injection Vulnerability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-code_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem Code
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fix-request_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix Request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed-code_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed Code
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-5-infinite-loop-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example 5: Infinite Loop Fix
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 5: Infinite Loop Fix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-code_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Problem Code
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fix-request_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix Request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed-code_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed Code
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-bug-patterns-and-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Bug Patterns and Fixes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Bug Patterns and Fixes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-off-by-one-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Off-by-One Errors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-nullundefined-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Null/Undefined Handling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-resource-leaks" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Resource Leaks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-concurrency-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Concurrency Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-type-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Type Errors
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debugging-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debugging Tips
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      See Also
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Documentation Writing Examples
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing Examples
     
   </span>
   
@@ -1626,6 +2049,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1746,6 +2173,52 @@
   
   <span class="md-ellipsis">
     Research and Theory
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-best-practices/best-practices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Implementation Best Practices
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-analysis/comparison-matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AI Agent Comparison Matrix
     
   </span>
   
