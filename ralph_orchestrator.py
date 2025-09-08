@@ -10,9 +10,10 @@ import json
 import signal
 import logging
 import argparse
+import hashlib
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -24,6 +25,8 @@ DEFAULT_CHECKPOINT_INTERVAL = 5
 DEFAULT_RETRY_DELAY = 2
 DEFAULT_MAX_TOKENS = 1000000  # 1M tokens total
 DEFAULT_MAX_COST = 50.0  # $50 USD
+DEFAULT_CONTEXT_WINDOW = 200000  # 200K token context window
+DEFAULT_CONTEXT_THRESHOLD = 0.8  # Trigger summarization at 80% of context
 
 # Token costs per million (approximate)
 TOKEN_COSTS = {
@@ -64,6 +67,8 @@ class RalphConfig:
     dry_run: bool = False
     max_tokens: int = DEFAULT_MAX_TOKENS
     max_cost: float = DEFAULT_MAX_COST
+    context_window: int = DEFAULT_CONTEXT_WINDOW
+    context_threshold: float = DEFAULT_CONTEXT_THRESHOLD
     agent_args: List[str] = field(default_factory=list)
 
 @dataclass
@@ -100,6 +105,69 @@ class TokenMetrics:
         """Check if within token and cost limits"""
         return self.get_total_tokens() < max_tokens and self.total_cost < max_cost
 
+class ContextManager:
+    """Manages context window and prompt summarization"""
+    
+    def __init__(self, window_size: int, threshold: float):
+        self.window_size = window_size
+        self.threshold = threshold
+        self.prompt_history = []
+        self.summary_cache = {}
+        
+    def estimate_tokens(self, text: str) -> int:
+        """Estimate token count from text"""
+        return len(text) // 4
+    
+    def add_to_history(self, prompt_path: Path):
+        """Add prompt to history and track size"""
+        content = prompt_path.read_text()
+        content_hash = hashlib.md5(content.encode()).hexdigest()
+        
+        self.prompt_history.append({
+            'path': str(prompt_path),
+            'content': content,
+            'hash': content_hash,
+            'tokens': self.estimate_tokens(content),
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    def needs_summarization(self, current_prompt: str) -> bool:
+        """Check if context needs summarization"""
+        current_tokens = self.estimate_tokens(current_prompt)
+        threshold_tokens = int(self.window_size * self.threshold)
+        return current_tokens > threshold_tokens
+    
+    def summarize_prompt(self, prompt_path: Path) -> Tuple[bool, Optional[Path]]:
+        """Summarize prompt if needed, returns (was_summarized, new_path)"""
+        content = prompt_path.read_text()
+        
+        if not self.needs_summarization(content):
+            return False, None
+            
+        logger.info(f"Context approaching limit, creating summary...")
+        
+        # Create summary prompt for the agent
+        summary_prompt = f"""CONTEXT OVERFLOW DETECTED
+
+The following prompt has grown too large. Please create a concise summary that preserves:
+1. The original task/goal
+2. Key completed steps
+3. Current state and next actions
+4. Critical context and constraints
+
+ORIGINAL PROMPT:
+{content}
+
+Please write a new, shorter prompt that continues the task.
+Mark the end with: TASK_COMPLETE if done, or continue normally.
+"""
+        
+        # Save summary prompt
+        summary_path = Path(f".agent/prompts/summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md")
+        summary_path.write_text(summary_prompt)
+        
+        return True, summary_path
+
 class RalphOrchestrator:
     """Main orchestrator for Ralph Wiggum technique"""
     
@@ -111,6 +179,10 @@ class RalphOrchestrator:
         self.checkpoints = []
         self.token_metrics = TokenMetrics()
         self.current_agent = None
+        self.context_manager = ContextManager(
+            config.context_window,
+            config.context_threshold
+        )
         self.setup_signal_handlers()
         self.setup_directories()
         
@@ -207,8 +279,22 @@ class RalphOrchestrator:
         logger.info(f"Iteration {self.iteration_count} starting...")
         logger.info(f"Current usage: {self.token_metrics.get_total_tokens()} tokens, ${self.token_metrics.total_cost:.2f}")
         
+        # Check and handle context overflow
+        prompt_path = Path(self.config.prompt_file)
+        was_summarized, summary_path = self.context_manager.summarize_prompt(prompt_path)
+        
+        if was_summarized:
+            logger.info(f"Created context summary at {summary_path}")
+            # Temporarily use summary prompt
+            original_prompt = self.config.prompt_file
+            self.config.prompt_file = str(summary_path)
+        
         try:
             cmd = self.build_agent_command()
+            
+            # Restore original prompt if summarized
+            if was_summarized:
+                self.config.prompt_file = original_prompt
             
             if self.config.dry_run:
                 logger.info(f"[DRY RUN] Would execute: {' '.join(cmd)}")
@@ -227,8 +313,9 @@ class RalphOrchestrator:
             input_tokens = self.estimate_tokens(prompt_content)
             output_tokens = self.estimate_tokens(result.stdout + result.stderr)
             
-            # Track token usage
+            # Track token usage and context
             self.token_metrics.add_iteration(input_tokens, output_tokens, self.current_agent)
+            self.context_manager.add_to_history(Path(self.config.prompt_file))
             
             if result.returncode != 0:
                 error_msg = f"Agent failed with code {result.returncode}: {result.stderr}"
@@ -314,7 +401,8 @@ class RalphOrchestrator:
                 'max_iterations': self.config.max_iterations,
                 'max_runtime': self.config.max_runtime,
                 'max_tokens': self.config.max_tokens,
-                'max_cost': self.config.max_cost
+                'max_cost': self.config.max_cost,
+                'context_window': self.config.context_window
             }
         }
         
@@ -356,6 +444,7 @@ class RalphOrchestrator:
         logger.info(f"Max runtime: {self.config.max_runtime}s")
         logger.info(f"Max tokens: {self.config.max_tokens:,}")
         logger.info(f"Max cost: ${self.config.max_cost:.2f}")
+        logger.info(f"Context window: {self.config.context_window:,} tokens")
         
         while self.should_continue():
             result = self.run_iteration()
@@ -443,6 +532,20 @@ def main():
     )
     
     parser.add_argument(
+        "--context-window",
+        type=int,
+        default=DEFAULT_CONTEXT_WINDOW,
+        help=f"Context window size in tokens (default: {DEFAULT_CONTEXT_WINDOW:,})"
+    )
+    
+    parser.add_argument(
+        "--context-threshold",
+        type=float,
+        default=DEFAULT_CONTEXT_THRESHOLD,
+        help=f"Context summarization threshold (default: {DEFAULT_CONTEXT_THRESHOLD:.1%})"
+    )
+    
+    parser.add_argument(
         "--no-git",
         action="store_true",
         help="Disable git checkpointing"
@@ -492,6 +595,8 @@ def main():
         dry_run=args.dry_run,
         max_tokens=args.max_tokens,
         max_cost=args.max_cost,
+        context_window=args.context_window,
+        context_threshold=args.context_threshold,
         agent_args=args.agent_args
     )
     
