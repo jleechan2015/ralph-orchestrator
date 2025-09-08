@@ -12,6 +12,8 @@ import logging
 import argparse
 import hashlib
 import platform
+import re
+import shlex
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
@@ -36,6 +38,7 @@ DEFAULT_MAX_COST = 50.0  # $50 USD
 DEFAULT_CONTEXT_WINDOW = 200000  # 200K token context window
 DEFAULT_CONTEXT_THRESHOLD = 0.8  # Trigger summarization at 80% of context
 DEFAULT_METRICS_INTERVAL = 10  # Log metrics every 10 iterations
+DEFAULT_MAX_PROMPT_SIZE = 10485760  # 10MB max prompt file size
 
 # Token costs per million (approximate)
 TOKEN_COSTS = {
@@ -80,6 +83,8 @@ class RalphConfig:
     context_threshold: float = DEFAULT_CONTEXT_THRESHOLD
     metrics_interval: int = DEFAULT_METRICS_INTERVAL
     enable_metrics: bool = True
+    max_prompt_size: int = DEFAULT_MAX_PROMPT_SIZE
+    allow_unsafe_paths: bool = False
     agent_args: List[str] = field(default_factory=list)
 
 @dataclass
@@ -279,6 +284,85 @@ class MetricsCollector:
         path.write_text(json.dumps(metrics_data, indent=2))
         logger.debug(f"Saved metrics to {path}")
 
+class SecurityValidator:
+    """Validates and sanitizes inputs for security"""
+    
+    # Patterns that might indicate malicious content
+    UNSAFE_PATTERNS = [
+        r'\$\(.*\)',  # Command substitution
+        r'`.*`',       # Backtick command substitution
+        r'\|\s*sh',   # Pipe to shell
+        r'\|\s*bash', # Pipe to bash
+        r'&&\s*rm',   # Chained rm command
+        r';\s*rm',    # Semicolon rm command
+        r'\.\./',     # Directory traversal
+        r'~/',        # Home directory access (configurable)
+    ]
+    
+    # File extensions that should not be used as prompts
+    FORBIDDEN_EXTENSIONS = {'.exe', '.dll', '.so', '.dylib', '.bin', '.app'}
+    
+    @classmethod
+    def validate_prompt_file(cls, path: Path, max_size: int, allow_unsafe: bool = False) -> Tuple[bool, Optional[str]]:
+        """Validate prompt file for security issues"""
+        
+        # Check file exists
+        if not path.exists():
+            return False, f"File not found: {path}"
+        
+        # Check file size
+        file_size = path.stat().st_size
+        if file_size > max_size:
+            return False, f"File too large: {file_size} bytes (max: {max_size})"
+        
+        # Check file extension
+        if path.suffix.lower() in cls.FORBIDDEN_EXTENSIONS:
+            return False, f"Forbidden file type: {path.suffix}"
+        
+        # Check for directory traversal
+        try:
+            resolved = path.resolve()
+            if not allow_unsafe and '..' in str(path):
+                return False, "Path contains directory traversal"
+        except Exception as e:
+            return False, f"Invalid path: {e}"
+        
+        # Check file content for unsafe patterns
+        if not allow_unsafe:
+            try:
+                content = path.read_text(errors='ignore')
+                for pattern in cls.UNSAFE_PATTERNS:
+                    if re.search(pattern, content, re.IGNORECASE):
+                        return False, f"Potentially unsafe content detected: {pattern}"
+            except Exception as e:
+                return False, f"Cannot read file: {e}"
+        
+        return True, None
+    
+    @classmethod
+    def sanitize_command_args(cls, args: List[str]) -> List[str]:
+        """Sanitize command arguments for shell execution"""
+        sanitized = []
+        for arg in args:
+            # Use shlex.quote for proper shell escaping
+            sanitized.append(shlex.quote(arg))
+        return sanitized
+    
+    @classmethod
+    def validate_agent_command(cls, cmd: List[str]) -> Tuple[bool, Optional[str]]:
+        """Validate agent command for safety"""
+        if not cmd:
+            return False, "Empty command"
+        
+        # Check for shell injection attempts in command
+        dangerous_chars = ['$', '`', ';', '&&', '||', '>', '<', '|']
+        for part in cmd:
+            for char in dangerous_chars:
+                if char in part and not part.startswith('--'):
+                    return False, f"Potentially dangerous character in command: {char}"
+        
+        return True, None
+
 class RalphOrchestrator:
     """Main orchestrator for Ralph Wiggum technique"""
     
@@ -296,8 +380,12 @@ class RalphOrchestrator:
         )
         self.metrics_collector = MetricsCollector(config.enable_metrics)
         self.iteration_start_time = None
+        self.security_validator = SecurityValidator()
         self.setup_signal_handlers()
         self.setup_directories()
+        
+        # Validate initial prompt file
+        self._validate_prompt_security()
         
     def setup_signal_handlers(self):
         """Setup graceful shutdown handlers"""
@@ -320,6 +408,20 @@ class RalphOrchestrator:
         ]
         for dir_path in dirs:
             dir_path.mkdir(parents=True, exist_ok=True)
+    
+    def _validate_prompt_security(self):
+        """Validate prompt file security on startup"""
+        prompt_path = Path(self.config.prompt_file)
+        is_valid, error = self.security_validator.validate_prompt_file(
+            prompt_path, 
+            self.config.max_prompt_size,
+            self.config.allow_unsafe_paths
+        )
+        
+        if not is_valid:
+            logger.error(f"Security validation failed: {error}")
+            if not self.config.allow_unsafe_paths:
+                raise SecurityError(f"Prompt file failed security validation: {error}")
             
     def detect_agent(self) -> AgentType:
         """Auto-detect available AI agent"""
@@ -351,6 +453,16 @@ class RalphOrchestrator:
         prompt_file = Path(self.config.prompt_file)
         if not prompt_file.exists():
             raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
+        
+        # Validate prompt file before use
+        is_valid, error = self.security_validator.validate_prompt_file(
+            prompt_file,
+            self.config.max_prompt_size,
+            self.config.allow_unsafe_paths
+        )
+        
+        if not is_valid:
+            raise SecurityError(f"Prompt validation failed: {error}")
             
         if agent == AgentType.CLAUDE:
             cmd = ["claude", "-p", f"@{prompt_file}"]
@@ -363,8 +475,16 @@ class RalphOrchestrator:
         else:
             raise ValueError(f"Unsupported agent type: {agent}")
             
-        # Add any additional agent arguments
-        cmd.extend(self.config.agent_args)
+        # Sanitize and add additional agent arguments
+        if self.config.agent_args:
+            sanitized_args = self.security_validator.sanitize_command_args(self.config.agent_args)
+            cmd.extend(sanitized_args)
+        
+        # Final command validation
+        is_valid, error = self.security_validator.validate_agent_command(cmd)
+        if not is_valid:
+            raise SecurityError(f"Command validation failed: {error}")
+        
         return cmd
         
     def check_completion(self) -> bool:
@@ -715,6 +835,19 @@ def main():
     )
     
     parser.add_argument(
+        "--max-prompt-size",
+        type=int,
+        default=DEFAULT_MAX_PROMPT_SIZE,
+        help=f"Maximum prompt file size in bytes (default: {DEFAULT_MAX_PROMPT_SIZE})"
+    )
+    
+    parser.add_argument(
+        "--allow-unsafe-paths",
+        action="store_true",
+        help="Allow potentially unsafe prompt paths (use with caution)"
+    )
+    
+    parser.add_argument(
         "--no-git",
         action="store_true",
         help="Disable git checkpointing"
@@ -768,6 +901,8 @@ def main():
         context_threshold=args.context_threshold,
         metrics_interval=args.metrics_interval,
         enable_metrics=not args.no_metrics,
+        max_prompt_size=args.max_prompt_size,
+        allow_unsafe_paths=args.allow_unsafe_paths,
         agent_args=args.agent_args
     )
     
