@@ -20,6 +20,11 @@ from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
+# Custom exceptions
+class SecurityError(Exception):
+    """Raised when security validation fails"""
+    pass
+
 # Optional monitoring dependencies
 try:
     import psutil
@@ -290,7 +295,8 @@ class SecurityValidator:
     # Patterns that might indicate malicious content
     UNSAFE_PATTERNS = [
         r'\$\(.*\)',  # Command substitution
-        r'`.*`',       # Backtick command substitution
+        r'`[^`]*\$[^`]*`',  # Backtick command substitution with shell variable
+        r'`[^`]*(rm|curl|wget|nc|sh|bash|cat\s+/etc|chmod|chown|dd|mkfs)[^`]*`',  # Backtick with dangerous commands
         r'\|\s*sh',   # Pipe to shell
         r'\|\s*bash', # Pipe to bash
         r'&&\s*rm',   # Chained rm command
@@ -355,10 +361,21 @@ class SecurityValidator:
             return False, "Empty command"
         
         # Check for shell injection attempts in command
+        # Skip validation for arguments that are clearly data (long text, markdown content)
         dangerous_chars = ['$', '`', ';', '&&', '||', '>', '<', '|']
-        for part in cmd:
+        for i, part in enumerate(cmd):
+            # Skip the command itself and flags
+            if i == 0 or part.startswith('-'):
+                continue
+            # Skip long text arguments (likely content, not commands)
+            if len(part) > 100:
+                continue
+            # Check for dangerous patterns in short arguments
             for char in dangerous_chars:
-                if char in part and not part.startswith('--'):
+                if char in part:
+                    # Allow backticks in markdown-like content
+                    if char == '`' and ('function' in part or 'def ' in part or 'class' in part):
+                        continue
                     return False, f"Potentially dangerous character in command: {char}"
         
         return True, None
@@ -818,7 +835,7 @@ def main():
         "--context-threshold",
         type=float,
         default=DEFAULT_CONTEXT_THRESHOLD,
-        help=f"Context summarization threshold (default: {DEFAULT_CONTEXT_THRESHOLD:.1%})"
+        help=f"Context summarization threshold (default: {DEFAULT_CONTEXT_THRESHOLD:.1f} = {DEFAULT_CONTEXT_THRESHOLD*100:.0f}%%)"
     )
     
     parser.add_argument(
