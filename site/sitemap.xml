@@ -5,7 +5,19 @@
          <lastmod>2025-09-08</lastmod>
     </url>
     <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/changelog/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
          <loc>https://mikeyobrien.github.io/ralph-orchestrator/contributing/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/faq/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/glossary/</loc>
          <lastmod>2025-09-08</lastmod>
     </url>
     <url>
@@ -13,7 +25,59 @@
          <lastmod>2025-09-08</lastmod>
     </url>
     <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/license/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
          <loc>https://mikeyobrien.github.io/ralph-orchestrator/quick-start/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/research/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/testing/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/troubleshooting/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/advanced/architecture/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/advanced/context-management/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/advanced/monitoring/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/advanced/production-deployment/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/advanced/security/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/api/agents/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/api/cli/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/api/config/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/api/metrics/</loc>
          <lastmod>2025-09-08</lastmod>
     </url>
     <url>
@@ -25,7 +89,19 @@
          <lastmod>2025-09-08</lastmod>
     </url>
     <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/examples/cli-tool/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/examples/data-analysis/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
          <loc>https://mikeyobrien.github.io/ralph-orchestrator/examples/simple-task/</loc>
+         <lastmod>2025-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://mikeyobrien.github.io/ralph-orchestrator/examples/web-api/</loc>
          <lastmod>2025-09-08</lastmod>
     </url>
     <url>
