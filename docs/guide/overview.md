@@ -1,288 +1,207 @@
-# User Guide Overview
+# Overview
 
-Welcome to the Ralph Orchestrator User Guide! This comprehensive guide will help you master all aspects of Ralph Orchestrator, from basic usage to advanced configurations.
+## What is Ralph Orchestrator?
 
-## What You'll Learn
+Ralph Orchestrator is a production-ready implementation of the Ralph Wiggum orchestration technique for AI agents. It provides a robust framework for running AI agents in a continuous loop until a task is completed, with enterprise-grade safety, monitoring, and cost controls.
 
-This guide covers:
-
-- **Configuration**: How to customize Ralph's behavior
-- **AI Agents**: Working with different AI providers
-- **Prompts**: Writing effective prompts for better results
-- **Checkpointing**: Using Git integration for state management
-- **Cost Management**: Controlling token usage and expenses
-
-## How Ralph Works
-
-### The Orchestration Loop
-
-Ralph Orchestrator implements a simple but powerful pattern:
-
-```mermaid
-graph LR
-    A[Read Prompt] --> B[Execute Agent]
-    B --> C{Task Complete?}
-    C -->|No| D[Check Limits]
-    D -->|OK| A
-    D -->|Exceeded| E[Stop]
-    C -->|Yes| E[Stop]
-```
-
-### Core Components
-
-1. **Prompt File**: Your task description that evolves during execution
-2. **AI Agent**: The AI model that processes the prompt
-3. **Orchestrator**: The control loop that manages iterations
-4. **Checkpoints**: Git commits that save progress
-5. **Metrics**: Performance and cost tracking
-
-## Basic Workflow
-
-### 1. Create a Prompt
-
-Write your task in a markdown file:
-
-```markdown
-# Task: Build a REST API
-
-Create a Flask REST API with:
-- User authentication
-- CRUD operations for products
-- SQLite database
-- OpenAPI documentation
-
-When complete, add TASK_COMPLETE.
-```
-
-### 2. Run Ralph
-
-Execute the orchestrator:
-
-```bash
-python ralph_orchestrator.py --prompt task.md
-```
-
-### 3. Monitor Progress
-
-Ralph provides real-time feedback:
-
-```
-Iteration 1/100: Agent processing...
-Tokens used: 1,234 (Cost: $0.05)
-Context usage: 45% of window
-Checkpoint saved at iteration 5
-```
-
-### 4. Review Results
-
-Check the outputs:
-- Modified prompt file with solution
-- Generated code files
-- Checkpoint history in Git
-- Metrics in `.agent/metrics/`
-
-## Configuration Hierarchy
-
-Ralph uses a hierarchical configuration system:
-
-1. **Command-line arguments** (highest priority)
-2. **Environment variables** (`RALPH_*`)
-3. **Configuration file** (`.ralph.conf`)
-4. **Default values** (lowest priority)
-
-Example:
-```bash
-# Command line overrides all
-python ralph_orchestrator.py --max-iterations 50
-
-# Environment variable
-export RALPH_MAX_ITERATIONS=75
-
-# Config file
-echo "max_iterations=100" > .ralph.conf
-
-# Final value used: 50 (command line wins)
-```
+The system is named after Ralph Wiggum from The Simpsons, embodying the philosophy of persistent iteration: "Me fail English? That's unpossible!" - just keep trying until you succeed.
 
 ## Key Concepts
 
-### Iterations
+### The Ralph Wiggum Technique
 
-Each iteration consists of:
-1. Reading the current prompt
-2. Executing the AI agent
-3. Checking for completion
-4. Updating metrics
-5. Creating checkpoints (if interval reached)
+The Ralph Wiggum technique is a simple yet powerful approach to AI orchestration:
 
-### Completion Detection
+1. **Give the AI a task** via a prompt file
+2. **Let it iterate** continuously on the problem
+3. **Monitor progress** through checkpoints and metrics
+4. **Stop when complete** or when limits are reached
 
-Ralph detects task completion by:
-- Finding "TASK_COMPLETE" in the prompt file
-- Reaching maximum iterations
-- Exceeding time/token/cost limits
-- Encountering fatal errors
+This approach leverages the AI's ability to self-correct and improve through multiple iterations, similar to how humans refine their work through multiple drafts.
 
-### State Management
+### Core Components
 
-Ralph maintains state through:
-- **Prompt file**: Current task state
-- **Git commits**: Historical checkpoints
-- **Metrics files**: Performance data
-- **Archive directory**: Prompt history
+```mermaid
+graph TB
+    A[Prompt File] --> B[Ralph Orchestrator]
+    B --> C{AI Agent}
+    C --> D[Claude]
+    C --> E[Q Chat]
+    C --> F[Gemini]
+    D --> G[Execute Task]
+    E --> G
+    F --> G
+    G --> H{Task Complete?}
+    H -->|No| B
+    H -->|Yes| I[End]
+    B --> J[Checkpointing]
+    B --> K[Metrics]
+    B --> L[Cost Control]
+```
 
-## Safety Features
+## How It Works
 
-### Automatic Limits
+### 1. Initialization Phase
 
-Ralph enforces multiple safety limits:
-- **Iteration limit**: Prevents infinite loops
-- **Runtime limit**: Caps execution time
-- **Token limit**: Controls API usage
-- **Cost limit**: Prevents budget overruns
+When you start Ralph Orchestrator, it:
 
-### Error Handling
+- Validates the prompt file for security
+- Detects available AI agents
+- Sets up monitoring and metrics collection
+- Creates working directories for checkpoints
+- Initializes cost and token tracking
 
-Ralph handles errors gracefully:
-- Automatic retries with backoff
-- Circuit breaker for repeated failures
-- Graceful shutdown on SIGINT/SIGTERM
-- State preservation for recovery
+### 2. Iteration Loop
 
-### Security Controls
+The main orchestration loop:
 
-Built-in security features:
+1. **Pre-flight checks**: Verify token/cost limits haven't been exceeded
+2. **Context management**: Check if context window needs summarization
+3. **Agent execution**: Run the selected AI agent with the prompt
+4. **Response processing**: Capture and analyze the agent's output
+5. **Metrics collection**: Track tokens, costs, and performance
+6. **Completion check**: Look for the `TASK_COMPLETE` marker
+7. **Checkpoint**: Save state at configured intervals
+8. **Repeat**: Continue until task is complete or limits are reached
+
+### 3. Safety Mechanisms
+
+Multiple layers of protection ensure safe operation:
+
+- **Input validation**: Sanitizes prompts to prevent injection attacks
+- **Resource limits**: Enforces token, cost, and runtime boundaries
+- **Context overflow**: Automatically summarizes when approaching limits
+- **Graceful shutdown**: Handles interrupts and saves state
+- **Error recovery**: Retries with exponential backoff
+
+### 4. Completion
+
+When the task completes or limits are reached:
+
+- Final metrics are saved
+- State is persisted for analysis
+- Usage statistics are reported
+- Detailed logs are exported
+
+## Use Cases
+
+Ralph Orchestrator excels at:
+
+### Software Development
+- Writing complete applications from specifications
+- Refactoring large codebases
+- Implementing complex features iteratively
+- Debugging difficult issues
+
+### Content Creation
+- Writing comprehensive documentation
+- Generating test suites
+- Creating API specifications
+- Developing training materials
+
+### Data Processing
+- Analyzing large datasets
+- Generating reports
+- Data transformation pipelines
+- ETL operations
+
+### Research & Analysis
+- Literature reviews
+- Market research
+- Competitive analysis
+- Technical investigations
+
+## Benefits
+
+### 🚀 Productivity
+- Automate complex, multi-step tasks
+- Reduce human intervention
+- Parallelize work across multiple agents
+- 24/7 operation capability
+
+### 💰 Cost Management
+- Real-time cost tracking
+- Configurable spending limits
+- Per-agent pricing models
+- Token usage optimization
+
+### 🔒 Security
 - Input sanitization
 - Command injection prevention
 - Path traversal protection
-- File size limits
+- Audit trails
 
-## Best Practices
+### 📊 Observability
+- Detailed metrics collection
+- Performance monitoring
+- Success/failure tracking
+- Resource utilization
 
-### Writing Effective Prompts
+### 🔄 Reliability
+- Automatic retries
+- State persistence
+- Checkpoint recovery
+- Graceful degradation
 
-1. **Be specific**: Clear requirements get better results
-2. **Set boundaries**: Define what should NOT be done
-3. **Include examples**: Show desired output format
-4. **Add completion criteria**: Specify when task is done
+## Architecture Overview
 
-### Optimizing Performance
-
-1. **Start simple**: Test with small tasks first
-2. **Use checkpoints**: Enable recovery from failures
-3. **Monitor metrics**: Watch token usage and costs
-4. **Set appropriate limits**: Avoid runaway execution
-
-### Managing Costs
-
-1. **Set cost limits**: Use `--max-cost` parameter
-2. **Monitor token usage**: Check metrics regularly
-3. **Use appropriate models**: Cheaper models for simple tasks
-4. **Enable context management**: Prevent overflow charges
-
-## Common Use Cases
-
-### Code Generation
-
-```bash
-# Generate a complete application
-python ralph_orchestrator.py \
-  --prompt "Build a todo app with React and Node.js" \
-  --max-iterations 50
+```mermaid
+graph LR
+    subgraph "Input Layer"
+        A[CLI Arguments]
+        B[Prompt File]
+        C[Configuration]
+    end
+    
+    subgraph "Orchestration Core"
+        D[Ralph Orchestrator]
+        E[Agent Manager]
+        F[Context Manager]
+        G[Metrics Collector]
+    end
+    
+    subgraph "AI Agents"
+        H[Claude]
+        I[Q Chat]
+        J[Gemini]
+    end
+    
+    subgraph "Persistence"
+        K[Git Checkpoints]
+        L[Prompt Archives]
+        M[Metrics Store]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+    E --> H
+    E --> I
+    E --> J
+    D --> F
+    D --> G
+    D --> K
+    D --> L
+    G --> M
 ```
 
-### Documentation
+## Getting Started
 
-```bash
-# Create comprehensive docs
-python ralph_orchestrator.py \
-  --prompt "Document this Python package" \
-  --agent claude \
-  --max-cost 10.0
-```
+To start using Ralph Orchestrator:
 
-### Data Processing
+1. **Install the tool** and at least one AI agent
+2. **Create a prompt file** with your task
+3. **Run the orchestrator** with appropriate limits
+4. **Monitor progress** through logs and metrics
+5. **Retrieve results** when complete
 
-```bash
-# Process and analyze data
-python ralph_orchestrator.py \
-  --prompt "Clean and analyze sales_data.csv" \
-  --checkpoint-interval 10
-```
-
-### Testing
-
-```bash
-# Write comprehensive tests
-python ralph_orchestrator.py \
-  --prompt "Add unit tests for all modules" \
-  --max-runtime 7200
-```
-
-## Monitoring and Debugging
-
-### Log Levels
-
-Control verbosity with `--verbose`:
-```bash
-# Normal output
-python ralph_orchestrator.py --prompt task.md
-
-# Detailed logging
-python ralph_orchestrator.py --prompt task.md --verbose
-```
-
-### Metrics Files
-
-Find metrics in `.agent/metrics/`:
-- `state_*.json`: Orchestrator state
-- `metrics_*.json`: Performance data
-- `tokens_*.json`: Token usage
-
-### Checkpoint History
-
-View Git history:
-```bash
-# See all checkpoints
-git log --oneline
-
-# Restore previous state
-git checkout <commit-hash>
-```
-
-## Getting Help
-
-### Built-in Help
-
-```bash
-# Show all options
-python ralph_orchestrator.py --help
-
-# Show version
-python ralph_orchestrator.py --version
-
-# List available agents
-python ralph_orchestrator.py --list-agents
-```
-
-### Resources
-
-- [Configuration Guide](configuration.md)
-- [Agent Setup](agents.md)
-- [Prompt Writing](prompts.md)
-- [Cost Management](cost-management.md)
-- [Troubleshooting](../troubleshooting.md)
+See the [Quick Start](../quick-start.md) guide for detailed instructions.
 
 ## Next Steps
 
-Now that you understand the basics:
-
-1. **Configure your environment**: Set up your preferred [configuration](configuration.md)
-2. **Choose your agent**: Learn about [AI agents](agents.md)
-3. **Write better prompts**: Master [prompt engineering](prompts.md)
-4. **Control costs**: Implement [cost management](cost-management.md)
-5. **Deploy to production**: Read the [production guide](../advanced/production-deployment.md)
-
----
-
-📚 Continue to [Configuration Guide](configuration.md) →
+- Learn about [Configuration](configuration.md) options
+- Understand [Agent](agents.md) selection and capabilities
+- Master [Prompt](prompts.md) engineering for best results
+- Explore [Cost Management](cost-management.md) strategies
+- Set up [Checkpointing](checkpointing.md) for recovery
