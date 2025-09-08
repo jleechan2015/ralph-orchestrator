@@ -89,7 +89,7 @@ ralph init
 This creates:
 - `PROMPT.md` - Task description template
 - `ralph.yml` - Configuration file
-- `.agent/` - Ralph workspace directories
+- `.agent/` - Workspace directories for prompts, checkpoints, metrics, plans, and memory
 
 ### 2. Configure Ralph (optional)
 Edit `ralph.yml` to customize settings:
@@ -268,11 +268,15 @@ ralph-orchestrator/
 ├── docs/                    # Documentation
 ├── PROMPT.md               # Task description (user created)
 ├── pyproject.toml          # Project configuration
-└── .agent/                 # Ralph workspace
-    ├── prompts/            # Archived prompt history
-    ├── checkpoints/        # Git checkpoint markers
-    ├── metrics/            # Performance and state data
-    └── plans/              # Agent planning documents
+├── .agent/                 # CLI workspace (created by init)
+│   ├── prompts/            # Prompt workspace
+│   ├── checkpoints/        # Checkpoint markers
+│   ├── metrics/            # Metrics data
+│   ├── plans/              # Planning documents
+│   └── memory/             # Agent memory
+├── .ralph/                 # Runtime metrics directory
+└── prompts/                # Prompt archive directory
+    └── archive/            # Archived prompt history
 ```
 
 ## Testing
@@ -350,7 +354,7 @@ Ralph Orchestrator Status
 =========================
 Prompt: PROMPT.md exists
 Status: IN PROGRESS
-Latest metrics: .agent/metrics/state_20250907_154435.json
+Latest metrics: .ralph/metrics_20250907_154435.json
 {
   "iteration_count": 15,
   "runtime": 234.5,
@@ -381,7 +385,7 @@ Ralph handles errors gracefully:
 
 ```bash
 # Check last error
-cat .agent/metrics/state_*.json | jq '.errors[-1]'
+cat .ralph/metrics_*.json | jq '.errors[-1]'
 
 # Reset to last checkpoint
 git reset --hard HEAD
