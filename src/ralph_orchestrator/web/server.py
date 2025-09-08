@@ -28,6 +28,7 @@ from .auth import (
     auth_manager, LoginRequest, TokenResponse,
     get_current_user, require_admin
 )
+from .database import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,9 @@ class OrchestratorMonitor:
         self.websocket_clients: List[WebSocket] = []
         self.metrics_cache: Dict[str, Any] = {}
         self.system_metrics_task: Optional[asyncio.Task] = None
+        self.database = DatabaseManager()
+        self.active_runs: Dict[str, int] = {}  # Maps orchestrator_id to run_id
+        self.active_iterations: Dict[str, int] = {}  # Maps orchestrator_id to iteration_id
         
     async def start_monitoring(self):
         """Start background monitoring tasks."""
@@ -109,6 +113,27 @@ class OrchestratorMonitor:
     def register_orchestrator(self, orchestrator_id: str, orchestrator: RalphOrchestrator):
         """Register an orchestrator instance."""
         self.active_orchestrators[orchestrator_id] = orchestrator
+        
+        # Create a new run in the database
+        try:
+            run_id = self.database.create_run(
+                orchestrator_id=orchestrator_id,
+                prompt_path=str(orchestrator.prompt_file),
+                max_iterations=orchestrator.max_iterations,
+                metadata={
+                    "primary_tool": orchestrator.primary_tool,
+                    "max_runtime": orchestrator.max_runtime
+                }
+            )
+            self.active_runs[orchestrator_id] = run_id
+            
+            # Extract and store tasks if available
+            if hasattr(orchestrator, 'task_queue'):
+                for task in orchestrator.task_queue:
+                    self.database.add_task(run_id, task['description'])
+        except Exception as e:
+            logger.error(f"Error creating database run for orchestrator {orchestrator_id}: {e}")
+        
         asyncio.create_task(self._broadcast_to_clients({
             "type": "orchestrator_registered",
             "data": {"id": orchestrator_id, "timestamp": datetime.now().isoformat()}
@@ -117,7 +142,28 @@ class OrchestratorMonitor:
     def unregister_orchestrator(self, orchestrator_id: str):
         """Unregister an orchestrator instance."""
         if orchestrator_id in self.active_orchestrators:
+            # Update database run status
+            if orchestrator_id in self.active_runs:
+                try:
+                    orchestrator = self.active_orchestrators[orchestrator_id]
+                    status = "completed" if not orchestrator.stop_requested else "stopped"
+                    total_iterations = orchestrator.metrics.total_iterations if hasattr(orchestrator, 'metrics') else 0
+                    self.database.update_run_status(
+                        self.active_runs[orchestrator_id],
+                        status=status,
+                        total_iterations=total_iterations
+                    )
+                    del self.active_runs[orchestrator_id]
+                except Exception as e:
+                    logger.error(f"Error updating database run for orchestrator {orchestrator_id}: {e}")
+            
+            # Remove from active orchestrators
             del self.active_orchestrators[orchestrator_id]
+            
+            # Remove active iteration tracking if exists
+            if orchestrator_id in self.active_iterations:
+                del self.active_iterations[orchestrator_id]
+            
             asyncio.create_task(self._broadcast_to_clients({
                 "type": "orchestrator_unregistered",
                 "data": {"id": orchestrator_id, "timestamp": datetime.now().isoformat()}
@@ -156,6 +202,58 @@ class OrchestratorMonitor:
             self.get_orchestrator_status(orch_id)
             for orch_id in self.active_orchestrators
         ]
+    
+    def start_iteration(self, orchestrator_id: str, iteration_number: int, 
+                       current_task: Optional[str] = None) -> Optional[int]:
+        """Start tracking a new iteration.
+        
+        Args:
+            orchestrator_id: ID of the orchestrator
+            iteration_number: Iteration number
+            current_task: Current task being executed
+            
+        Returns:
+            Iteration ID if successful, None otherwise
+        """
+        if orchestrator_id not in self.active_runs:
+            return None
+        
+        try:
+            iteration_id = self.database.add_iteration(
+                run_id=self.active_runs[orchestrator_id],
+                iteration_number=iteration_number,
+                current_task=current_task,
+                metrics=None  # Can be enhanced to include metrics
+            )
+            self.active_iterations[orchestrator_id] = iteration_id
+            return iteration_id
+        except Exception as e:
+            logger.error(f"Error starting iteration for orchestrator {orchestrator_id}: {e}")
+            return None
+    
+    def end_iteration(self, orchestrator_id: str, status: str = "completed",
+                     agent_output: Optional[str] = None, error_message: Optional[str] = None):
+        """End tracking for the current iteration.
+        
+        Args:
+            orchestrator_id: ID of the orchestrator
+            status: Status of the iteration (completed, failed)
+            agent_output: Output from the agent
+            error_message: Error message if failed
+        """
+        if orchestrator_id not in self.active_iterations:
+            return
+        
+        try:
+            self.database.update_iteration(
+                iteration_id=self.active_iterations[orchestrator_id],
+                status=status,
+                agent_output=agent_output,
+                error_message=error_message
+            )
+            del self.active_iterations[orchestrator_id]
+        except Exception as e:
+            logger.error(f"Error ending iteration for orchestrator {orchestrator_id}: {e}")
 
 
 class WebMonitor:
@@ -415,22 +513,63 @@ class WebMonitor:
             return self.monitor.metrics_cache
         
         @self.app.get("/api/history", dependencies=[auth_dependency] if self.enable_auth else [])
-        async def get_history():
-            """Get execution history."""
-            # Load history from metrics files
-            metrics_dir = Path(".agent") / "metrics"
-            history = []
+        async def get_history(limit: int = 50):
+            """Get execution history from database.
             
-            if metrics_dir.exists():
-                for metrics_file in sorted(metrics_dir.glob("metrics_*.json")):
-                    try:
-                        data = json.loads(metrics_file.read_text())
-                        data["filename"] = metrics_file.name
-                        history.append(data)
-                    except Exception as e:
-                        logger.error(f"Error reading metrics file {metrics_file}: {e}")
+            Args:
+                limit: Maximum number of runs to return (default 50)
+            """
+            try:
+                # Get recent runs from database
+                history = self.monitor.database.get_recent_runs(limit=limit)
+                return history
+            except Exception as e:
+                logger.error(f"Error fetching history from database: {e}")
+                # Fallback to file-based history if database fails
+                metrics_dir = Path(".agent") / "metrics"
+                history = []
+                
+                if metrics_dir.exists():
+                    for metrics_file in sorted(metrics_dir.glob("metrics_*.json")):
+                        try:
+                            data = json.loads(metrics_file.read_text())
+                            data["filename"] = metrics_file.name
+                            history.append(data)
+                        except Exception as e:
+                            logger.error(f"Error reading metrics file {metrics_file}: {e}")
             
             return {"history": history[-50:]}  # Return last 50 entries
+        
+        @self.app.get("/api/history/{run_id}", dependencies=[auth_dependency] if self.enable_auth else [])
+        async def get_run_details(run_id: int):
+            """Get detailed information about a specific run.
+            
+            Args:
+                run_id: ID of the run to retrieve
+            """
+            run_details = self.monitor.database.get_run_details(run_id)
+            if not run_details:
+                raise HTTPException(status_code=404, detail="Run not found")
+            return run_details
+        
+        @self.app.get("/api/statistics", dependencies=[auth_dependency] if self.enable_auth else [])
+        async def get_statistics():
+            """Get database statistics."""
+            return self.monitor.database.get_statistics()
+        
+        @self.app.post("/api/database/cleanup", dependencies=[auth_dependency] if self.enable_auth else [])
+        async def cleanup_database(days: int = 30):
+            """Clean up old records from the database.
+            
+            Args:
+                days: Number of days of history to keep (default 30)
+            """
+            try:
+                self.monitor.database.cleanup_old_records(days=days)
+                return {"status": "success", "message": f"Cleaned up records older than {days} days"}
+            except Exception as e:
+                logger.error(f"Error cleaning up database: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
         
         # Admin endpoints for user management
         @self.app.post("/api/admin/users", dependencies=[Depends(require_admin)] if self.enable_auth else [])
