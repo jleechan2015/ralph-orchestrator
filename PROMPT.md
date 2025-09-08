@@ -5,7 +5,7 @@ Update the Ralph Orchestrator documentation to ensure accuracy, remove any hallu
 ## Requirements
 
 - [x] Audit all existing documentation files for accuracy against the codebase
-- [ ] Identify and remove any hallucinated features or incorrect descriptions
+- [x] Identify and remove any hallucinated features or incorrect descriptions
 - [ ] Update README.md to accurately reflect current functionality
 - [ ] Verify all code examples in documentation are working and accurate
 - [ ] Ensure API documentation matches actual implementation
@@ -27,6 +27,16 @@ Update the Ralph Orchestrator documentation to ensure accuracy, remove any hallu
 2. **Project Structure Claims**:
    - README shows `.agent/` structure that doesn't match actual implementation
    - Need to verify all directory references throughout documentation
+
+3. **Archive Directory Configuration**:
+   - Orchestrator uses `./prompts/archive` as default archive directory
+   - This doesn't align with the `.agent/prompts` structure created by init
+   - Creates inconsistent file organization
+
+4. **Mixed Directory Usage**:
+   - CLI creates: `.agent/prompts`, `.agent/checkpoints`, `.agent/metrics`, `.agent/plans`, `.agent/memory`
+   - Orchestrator uses: `.ralph/` for metrics and `./prompts/archive` for archives
+   - No unified workspace directory structure
 
 ## Technical Specifications
 
