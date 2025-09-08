@@ -368,6 +368,54 @@ The Ralph Orchestrator Web Monitoring Dashboard has been successfully completed 
 - `docs/guide/web-quickstart.md` - 5-minute setup guide
 - `docs/guide/web-monitoring-complete.md` - Feature overview
 
+Fix this issues 
+
+✦ ❯ uv run python -m ralph_orchestrator.web
+
+2025-09-08 17:14:57,646 - ralph.orchestrator - INFO - Logging initialized - Level: INFO, Console: True, File: None, Dir: .logs
+2025-09-08 17:14:57,863 - ralph_orchestrator.web.database - INFO - Database initialized at /home/mobrienv/.ralph/history.db
+2025-09-08 17:14:57,868 - __main__ - INFO - Starting Ralph Orchestrator Web Monitor on 0.0.0.0:8080
+2025-09-08 17:14:57,868 - __main__ - INFO - Authentication enabled - default credentials: admin / ralph-admin-2024
+2025-09-08 17:14:57,868 - ralph_orchestrator.web.server - INFO - Starting web monitor on 0.0.0.0:8080
+INFO:     Started server process [331156]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     192.168.1.161:58170 - "GET / HTTP/1.1" 200 OK
+INFO:     192.168.1.161:58170 - "GET /api/orchestrators HTTP/1.1" 403 Forbidden
+INFO:     192.168.1.161:58169 - "GET /api/history HTTP/1.1" 403 Forbidden
+INFO:     192.168.1.161:58174 - "WebSocket /ws" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     192.168.1.161:58169 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     192.168.1.161:58176 - "WebSocket /ws" 403
+INFO:     192.168.1.161:58169 - "GET /api/metrics HTTP/1.1" 403 Forbidden
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     192.168.1.161:58169 - "GET /api/orchestrators HTTP/1.1" 403 Forbidden
+INFO:     192.168.1.161:58169 - "GET /api/metrics HTTP/1.1" 403 Forbidden
+INFO:     192.168.1.161:58177 - "WebSocket /ws" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     192.168.1.161:58178 - "GET /api/metrics HTTP/1.1" 403 Forbidden
+INFO:     192.168.1.161:58179 - "WebSocket /ws" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     192.168.1.161:58178 - "GET /api/metrics HTTP/1.1" 403 Forbidden
+INFO:     192.168.1.161:58180 - "WebSocket /ws" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     127.0.0.1:60632 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60646 - "WebSocket /ws" 403
+INFO:     127.0.0.1:60632 - "GET /api/orchestrators HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:60640 - "GET /api/history HTTP/1.1" 403 Forbidden
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:60660 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     connection closed
+INFO:     127.0.0.1:60660 - "GET /api/orchestrators HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:60660 - "GET /api/metrics HTTP/1.1" 403 Forbidden
+
+
 ## Success Criteria
 
 - ✅ Web UI successfully connects to running orchestrator instances

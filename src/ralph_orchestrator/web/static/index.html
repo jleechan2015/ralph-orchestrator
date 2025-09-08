@@ -789,6 +789,37 @@
         let logsBuffer = [];
         const maxLogs = 100;
 
+        // Check authentication status
+        async function checkAuthentication() {
+            const token = localStorage.getItem('ralph_auth_token');
+            
+            if (!token) {
+                window.location.href = '/login.html';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    localStorage.removeItem('ralph_auth_token');
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                localStorage.removeItem('ralph_auth_token');
+                window.location.href = '/login.html';
+                return false;
+            }
+        }
+
         // Helper function for authenticated API calls
         async function authenticatedFetch(url, options = {}) {
             const token = localStorage.getItem('ralph_auth_token');
@@ -804,13 +835,19 @@
             const response = await fetch(url, options);
             
             // If unauthorized, redirect to login
-            if (response.status === 401) {
+            if (response.status === 401 || response.status === 403) {
                 localStorage.removeItem('ralph_auth_token');
                 window.location.href = '/login.html';
                 return;
             }
             
             return response;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('ralph_auth_token');
+            window.location.href = '/login.html';
         }
 
         // Theme management
@@ -1517,7 +1554,13 @@
         }
 
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication first
+            const isAuthenticated = await checkAuthentication();
+            if (!isAuthenticated) {
+                return; // Will redirect to login
+            }
+            
             initTheme();
             connectWebSocket();
             refreshOrchestrators();
