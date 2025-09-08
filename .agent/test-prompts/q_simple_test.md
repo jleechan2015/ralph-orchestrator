@@ -1,0 +1,1 @@
+Write a Python function that calculates the sum of two numbers and print the result for 5 + 3.

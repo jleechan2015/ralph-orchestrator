@@ -1,2 +1,2 @@
 def hello():
-    return 'Hello from q'
+    return 'Hello from Q'

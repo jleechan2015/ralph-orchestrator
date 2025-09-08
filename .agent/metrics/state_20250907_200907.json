@@ -1,0 +1,32 @@
+{
+  "iteration_count": 3,
+  "start_time": 1757293747.7816997,
+  "runtime": 5.173683166503906e-05,
+  "errors": [],
+  "checkpoints": [],
+  "token_metrics": {
+    "input_tokens": 100,
+    "output_tokens": 50,
+    "total_cost": 0.000125,
+    "total_tokens": 150,
+    "iterations": [
+      {
+        "timestamp": "2025-09-07T20:09:07.781744",
+        "input_tokens": 100,
+        "output_tokens": 50,
+        "cost": 0.000125,
+        "cumulative_cost": 0.000125
+      }
+    ]
+  },
+  "metrics_summary": {},
+  "config": {
+    "agent": "q",
+    "prompt_file": "/tmp/tmpderljd5p/test_prompt.md",
+    "max_iterations": 100,
+    "max_runtime": 14400,
+    "max_tokens": 1000000,
+    "max_cost": 50.0,
+    "context_window": 200000
+  }
+}
