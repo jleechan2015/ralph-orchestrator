@@ -1,1 +1,0 @@
-Write a Python function called calculate_product that takes two numbers and returns their product. Save it to product_function.py

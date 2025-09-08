@@ -298,5 +298,5 @@ As Geoffrey Huntley noted: "Sometimes the simplest solution is the best solution
 
 - [Original Ralph Wiggum article](https://ghuntley.com/ralph/)
 - [Ralph Orchestrator GitHub](https://github.com/mikeyobrien/ralph-orchestrator)
-- [AI Agent Comparison Study](../06-analysis/comparison-matrix.md)
-- [Implementation Best Practices](../03-best-practices/best-practices.md)
+- [AI Agent Comparison Study](06-analysis/comparison-matrix.md)
+- [Implementation Best Practices](03-best-practices/best-practices.md)

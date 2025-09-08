@@ -1,1 +1,0 @@
-Write a Python function that calculates the factorial of a number and print the result for factorial(5).

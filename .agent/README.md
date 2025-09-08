@@ -1,27 +1,30 @@
-# Agent Scratchpad Directory
+# .agent Directory - Workspace
 
-This directory serves as a workspace for the AI agent during Ralph orchestration.
+This directory serves as a scratchpad and workspace for planning and documenting work on the ralph-orchestrator project.
 
 ## Directory Structure
 
-- `prompts/` - Archived prompt files from each iteration
-- `checkpoints/` - Git checkpoint references and state snapshots  
-- `metrics/` - Performance metrics and execution statistics
-- `plans/` - Long-term plans and todo lists
-- `memory/` - Agent memory and context storage
+- **plans/** - Long-term project plans, architectural decisions, and strategy documents
+- **todos/** - Task lists, current work items, and progress tracking
+- **notes/** - Research notes, ideas, observations, and temporary documentation
 
-## Usage
+## Purpose
 
-The orchestrator automatically manages this directory. Files here help with:
+This directory is used as a working space for:
+- Planning implementation strategies and approaches
+- Tracking ongoing tasks and progress
+- Documenting research findings and insights  
+- Storing temporary notes, ideas, and brainstorming
+- Maintaining context between work sessions
 
-1. **Recovery** - Resume from checkpoints after failures
-2. **Analysis** - Review iteration history and patterns
-3. **Learning** - Improve prompts based on past errors
-4. **Planning** - Store multi-step execution plans
+## Usage Guidelines
 
-## Important Notes
+- All files here are working documents and may be updated frequently
+- Use `plans/` for persistent, long-term planning documents
+- Use `todos/` for active task tracking and work items
+- Use `notes/` for research, ideas, and temporary documentation
+- Important finalized content should be moved to proper project documentation
 
-- This directory is managed by the orchestrator
-- Files here are ephemeral and may be cleaned up
-- Important data should be committed to the main repository
-- Use `plans/` for persistent planning documents
+## Current Status
+
+Directory has been cleaned of all test artifacts and is ready for use as a planning workspace.

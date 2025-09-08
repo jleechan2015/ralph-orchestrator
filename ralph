@@ -32,20 +32,39 @@ Commands:
     clean       Clean up agent workspace
     help        Show this help message
 
-Options:
-    -a, --agent AGENT       AI agent to use (claude/q/gemini/auto)
-    -p, --prompt FILE       Prompt file (default: PROMPT.md)
-    -i, --iterations N      Max iterations (default: 100)
-    -t, --time SECONDS      Max runtime in seconds
-    -v, --verbose          Verbose output
-    -d, --dry-run          Dry run mode
+Run Options:
+    -a, --agent AGENT           AI agent to use (claude/q/gemini/auto)
+    -p, --prompt FILE           Prompt file (default: PROMPT.md)
+    -i, --iterations N          Max iterations (default: 100)
+    -t, --time SECONDS          Max runtime in seconds (default: 14400)
+    -v, --verbose               Enable verbose output
+    -d, --dry-run               Dry run mode (test without execution)
+
+Advanced Options:
+    --max-tokens N              Maximum total tokens (default: 1,000,000)
+    --max-cost AMOUNT           Maximum cost in USD (default: 50.00)
+    --context-window N          Context window size (default: 200,000)
+    --context-threshold RATIO   Context summarization threshold (default: 0.8)
+    --checkpoint-interval N     Git checkpoint interval (default: 5)
+    --retry-delay SECONDS       Retry delay on errors (default: 2)
+    --metrics-interval N        Metrics logging interval (default: 10)
+    --max-prompt-size BYTES     Max prompt file size (default: 10MB)
+    --no-git                    Disable git checkpointing
+    --no-archive                Disable prompt archiving
+    --no-metrics                Disable metrics collection
+    --allow-unsafe-paths        Allow potentially unsafe prompt paths
 
 Examples:
-    ralph                   # Run with defaults
-    ralph run -a claude     # Use Claude
-    ralph init              # Set up new project
-    ralph status            # Check progress
-    ralph clean             # Clean workspace
+    ralph                           # Run with auto-detected agent
+    ralph run -a claude             # Use Claude agent
+    ralph run -p task.md -i 50      # Custom prompt, max 50 iterations
+    ralph run -t 3600 --dry-run     # Test mode with 1 hour timeout
+    ralph run --max-cost 10.00      # Limit spending to $10
+    ralph init                      # Set up new project
+    ralph status                    # Check current progress
+    ralph clean                     # Clean agent workspace
+
+Note: Additional arguments after options are passed directly to the AI agent.
 
 EOF
 }
@@ -149,6 +168,9 @@ run_orchestrator() {
     # Build command
     CMD="python3 $ORCHESTRATOR"
     
+    # Collect any remaining arguments for passing to agent
+    AGENT_ARGS=""
+    
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -176,11 +198,66 @@ run_orchestrator() {
                 CMD="$CMD --dry-run"
                 shift
                 ;;
+            --max-tokens)
+                CMD="$CMD --max-tokens $2"
+                shift 2
+                ;;
+            --max-cost)
+                CMD="$CMD --max-cost $2"
+                shift 2
+                ;;
+            --context-window)
+                CMD="$CMD --context-window $2"
+                shift 2
+                ;;
+            --context-threshold)
+                CMD="$CMD --context-threshold $2"
+                shift 2
+                ;;
+            --checkpoint-interval)
+                CMD="$CMD --checkpoint-interval $2"
+                shift 2
+                ;;
+            --retry-delay)
+                CMD="$CMD --retry-delay $2"
+                shift 2
+                ;;
+            --metrics-interval)
+                CMD="$CMD --metrics-interval $2"
+                shift 2
+                ;;
+            --max-prompt-size)
+                CMD="$CMD --max-prompt-size $2"
+                shift 2
+                ;;
+            --no-git)
+                CMD="$CMD --no-git"
+                shift
+                ;;
+            --no-archive)
+                CMD="$CMD --no-archive"
+                shift
+                ;;
+            --no-metrics)
+                CMD="$CMD --no-metrics"
+                shift
+                ;;
+            --allow-unsafe-paths)
+                CMD="$CMD --allow-unsafe-paths"
+                shift
+                ;;
             *)
+                # Collect remaining arguments for agent
+                AGENT_ARGS="$AGENT_ARGS $1"
                 shift
                 ;;
         esac
     done
+    
+    # Add agent arguments if any
+    if [ -n "$AGENT_ARGS" ]; then
+        CMD="$CMD $AGENT_ARGS"
+    fi
     
     echo -e "${GREEN}Starting Ralph Orchestrator...${NC}"
     echo "Command: $CMD"

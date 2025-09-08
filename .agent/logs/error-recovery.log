@@ -1,9 +1,0 @@
-2025-09-07 19:36:30,294 - ralph-orchestrator - INFO - Starting Ralph orchestrator with q agent
-2025-09-07 19:36:30,294 - ralph-orchestrator - INFO - Prompt file: .agent/test-prompts/error-test.md
-2025-09-07 19:36:30,294 - ralph-orchestrator - INFO - Max iterations: 2
-2025-09-07 19:36:30,294 - ralph-orchestrator - INFO - Max runtime: 14400s
-2025-09-07 19:36:30,294 - ralph-orchestrator - INFO - Iteration 1 starting...
-2025-09-07 19:36:39,026 - ralph-orchestrator - INFO - Iteration 2 starting...
-2025-09-07 19:36:48,079 - ralph-orchestrator - INFO - Reached max iterations (2)
-2025-09-07 19:36:48,080 - ralph-orchestrator - WARNING - Loop ended without task completion
-2025-09-07 19:36:48,080 - ralph-orchestrator - INFO - Saved state to .agent/metrics/state_20250907_193648.json

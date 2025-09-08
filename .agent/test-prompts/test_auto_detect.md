@@ -1,1 +1,0 @@
-Write a Python function called get_current_time that returns the current time as a string. Save it to time_function.py

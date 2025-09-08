@@ -1,1 +1,0 @@
-Write a Python function called calculate_sum that takes two numbers and returns their sum. Save it to sum_function.py
