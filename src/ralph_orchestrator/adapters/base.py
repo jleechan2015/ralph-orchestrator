@@ -120,6 +120,8 @@ You are running within the Ralph Orchestrator loop. This system will call you re
 for multiple iterations until the overall task is complete. Each iteration is a separate 
 execution where you should make incremental progress.
 
+The final output must be well-tested, documented, and production ready.
+
 IMPORTANT INSTRUCTIONS:
 1. Implement only ONE small, focused task from this prompt per iteration.
    - Each iteration is independent - focus on a single atomic change
@@ -135,7 +137,6 @@ IMPORTANT INSTRUCTIONS:
 4. When you complete a subtask, document it in the prompt file so the next iteration knows what's done.
 5. For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 6. If you create any temporary new files, scripts, or helper files for iteration, clean up these files by removing them at the end of the task.
-
 ---
 ORIGINAL PROMPT:
 

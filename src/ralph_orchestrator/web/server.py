@@ -14,7 +14,7 @@ from typing import Optional, Dict, Any, List
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -176,6 +176,11 @@ class WebMonitor:
             allow_headers=["*"],
         )
         
+        # Mount static files directory if it exists
+        static_dir = Path(__file__).parent / "static"
+        if static_dir.exists():
+            self.app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        
         # Setup routes
         self._setup_routes()
     
@@ -187,7 +192,7 @@ class WebMonitor:
             """Serve the main dashboard."""
             html_file = Path(__file__).parent / "static" / "index.html"
             if html_file.exists():
-                return HTMLResponse(content=html_file.read_text())
+                return FileResponse(html_file, media_type="text/html")
             else:
                 # Return a basic HTML page if static file doesn't exist yet
                 return HTMLResponse(content="""
@@ -204,7 +209,7 @@ class WebMonitor:
                 <body>
                     <h1>Ralph Orchestrator Monitor</h1>
                     <div id="status" class="status">
-                        <p>Web monitor is running. Static dashboard UI coming soon...</p>
+                        <p>Web monitor is running. Dashboard file not found.</p>
                         <p>API Endpoints:</p>
                         <ul>
                             <li><a href="/api/status">/api/status</a> - System status</li>
