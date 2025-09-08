@@ -12,26 +12,27 @@ Create a web-based monitoring interface for the Ralph Orchestrator system that p
 ## Latest Authentication Fix (September 8, 2024) ✅ RESOLVED
 **Issue**: Dashboard was loading but API calls were getting 403 Forbidden errors due to race condition in authentication flow.
 
-**Root Cause**: JavaScript functions were making API calls before the authentication check could redirect unauthenticated users to login.html.
+**Root Cause**: The immediate authentication check (IIFE) was only verifying token existence, not token validity. Invalid or expired tokens would pass the initial check but fail API calls, causing 403 errors.
 
 **Solution Applied**:
-- Added immediate token check at script start using IIFE (Immediately Invoked Function Expression)
-- Enhanced authentication check function with better logging and error handling  
-- Added try-catch wrapper around authentication check in DOMContentLoaded event
-- Prevents any code execution if no authentication token is present
+- Enhanced IIFE to perform immediate token verification via `/api/auth/verify` endpoint
+- Added async token validation before any other code execution
+- Improved error handling with proper token cleanup on verification failure
+- Prevents any API calls with invalid/expired tokens
 
 **Verification Completed**: 
 - ✅ Server authentication working correctly (login returns JWT token)
 - ✅ API endpoints properly protected (403 without token, 200 with token)
-- ✅ Frontend now redirects to login.html immediately if no token present
-- ✅ No more 403 errors in browser console when accessing dashboard without login
-- ✅ All 73 web module tests still passing
+- ✅ Frontend now verifies token validity immediately on page load
+- ✅ Invalid/expired tokens are cleaned up and redirect to login.html
+- ✅ No more 403 errors in browser console when accessing dashboard
+- ✅ All 73 web module tests still passing (verified September 8, 2024)
 - ✅ End-to-end authentication flow test successful
 
 **Files Modified**:
-- `src/ralph_orchestrator/web/static/index.html` - Fixed authentication flow timing issue
+- `src/ralph_orchestrator/web/static/index.html` - Enhanced IIFE with async token verification
 
-**TASK STATUS**: ✅ COMPLETE - Authentication issue resolved, all functionality working correctly
+**TASK STATUS**: ✅ COMPLETE - Authentication issue fully resolved, all functionality working correctly
 
 ## Task Status: COMPLETE ✅
 **All requirements and success criteria have been met. The web monitoring dashboard is fully functional and production-ready.**
