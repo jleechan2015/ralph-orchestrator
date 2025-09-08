@@ -353,7 +353,7 @@ class WebMonitor:
                 expires_in=auth_manager.access_token_expire_minutes * 60
             )
         
-        @self.app.post("/api/auth/verify")
+        @self.app.get("/api/auth/verify")
         async def verify_token(current_user: Dict[str, Any] = Depends(get_current_user)):
             """Verify the current token is valid."""
             return {
