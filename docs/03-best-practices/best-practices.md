@@ -219,4 +219,4 @@ Remember to adapt these practices to your specific use case and requirements.
 
 - [Configuration Guide](../guide/configuration.md)
 - [Security Documentation](../advanced/security.md)
-- [Performance Tuning](../advanced/performance.md)
+- [Context Management](../advanced/context-management.md)

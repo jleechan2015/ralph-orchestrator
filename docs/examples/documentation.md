@@ -320,5 +320,5 @@ Specify required sections like installation, configuration, API reference, etc.
 ## See Also
 
 - [Prompt Engineering Guide](../guide/prompts.md)
-- [Code Generation Examples](./code-generation.md)
+- [Web API Examples](./web-api.md)
 - [Testing Examples](./testing.md)

@@ -535,4 +535,4 @@ class TestPerformance:
 
 - [Testing Best Practices](../testing.md)
 - [CI/CD Integration](../deployment/ci-cd.md)
-- [Code Coverage Guide](../guide/coverage.md)
+- [Checkpointing Guide](../guide/checkpointing.md)

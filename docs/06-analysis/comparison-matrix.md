@@ -90,4 +90,4 @@ The choice of AI agent depends on your specific requirements:
 
 - [Ralph Orchestrator Configuration](../guide/configuration.md)
 - [Agent Integration Guide](../guide/agents.md)
-- [Performance Optimization](../advanced/performance.md)
+- [Monitoring](../advanced/monitoring.md)
