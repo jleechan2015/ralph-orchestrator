@@ -1,0 +1,148 @@
+{
+  "summary": {
+    "total_iterations": 5,
+    "successful_iterations": 5,
+    "success_rate": 1.0,
+    "total_duration_seconds": 48.08702063560486,
+    "average_duration_seconds": 9.617404127120972,
+    "total_tokens": 5371,
+    "total_cost_usd": 0.0078165,
+    "system_info": {
+      "platform": "Linux-6.16.4-3-cachyos-x86_64-with-glibc2.42",
+      "python_version": "3.13.7",
+      "cpu_count": 24
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "duration_seconds": 10.048674821853638,
+      "tokens_used": 1043,
+      "cost_usd": 0.0015164999999999998,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:11:11.095916",
+        "cpu_percent": 4.6,
+        "memory": {
+          "percent": 53.6,
+          "used_gb": 18.392242431640625,
+          "available_gb": 14.136474609375
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.34375,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.9671630859375
+        }
+      },
+      "uptime_seconds": 10.150052785873413
+    },
+    {
+      "iteration": 2,
+      "duration_seconds": 9.713303804397583,
+      "tokens_used": 947,
+      "cost_usd": 0.0013725,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:11:21.910272",
+        "cpu_percent": 5.0,
+        "memory": {
+          "percent": 53.5,
+          "used_gb": 18.380664825439453,
+          "available_gb": 14.14895248413086
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.34375,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.96633911132812
+        }
+      },
+      "uptime_seconds": 20.96441650390625
+    },
+    {
+      "iteration": 3,
+      "duration_seconds": 9.520547866821289,
+      "tokens_used": 1193,
+      "cost_usd": 0.0017415,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:11:32.531846",
+        "cpu_percent": 4.2,
+        "memory": {
+          "percent": 53.7,
+          "used_gb": 18.418075561523438,
+          "available_gb": 14.11251449584961
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.34765625,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.96633911132812
+        }
+      },
+      "uptime_seconds": 31.58581233024597
+    },
+    {
+      "iteration": 4,
+      "duration_seconds": 9.112306833267212,
+      "tokens_used": 1208,
+      "cost_usd": 0.001764,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:11:42.745011",
+        "cpu_percent": 6.2,
+        "memory": {
+          "percent": 53.6,
+          "used_gb": 18.383922576904297,
+          "available_gb": 14.146759033203125
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.35546875,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.96633911132812
+        }
+      },
+      "uptime_seconds": 41.79883885383606
+    },
+    {
+      "iteration": 5,
+      "duration_seconds": 9.692187309265137,
+      "tokens_used": 980,
+      "cost_usd": 0.0014219999999999999,
+      "success": true,
+      "system": {
+        "timestamp": "2025-09-07T20:11:53.537893",
+        "cpu_percent": 4.6,
+        "memory": {
+          "percent": 53.7,
+          "used_gb": 18.426185607910156,
+          "available_gb": 14.10464096069336
+        },
+        "process": {
+          "cpu_percent": 0.0,
+          "memory_mb": 24.37890625,
+          "num_threads": 1
+        },
+        "disk": {
+          "usage_percent": 70.0,
+          "free_gb": 152.96633911132812
+        }
+      },
+      "uptime_seconds": 52.5917387008667
+    }
+  ]
+}
