@@ -13,15 +13,20 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
 import uvicorn
 import psutil
 
 from ..metrics import Metrics, CostTracker
 from ..orchestrator import RalphOrchestrator
+from .auth import (
+    auth_manager, LoginRequest, TokenResponse,
+    get_current_user, require_admin
+)
 
 logger = logging.getLogger(__name__)
 
@@ -150,9 +155,10 @@ class OrchestratorMonitor:
 class WebMonitor:
     """Web monitoring server for Ralph Orchestrator."""
     
-    def __init__(self, host: str = "0.0.0.0", port: int = 8080):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8080, enable_auth: bool = True):
         self.host = host
         self.port = port
+        self.enable_auth = enable_auth
         self.monitor = OrchestratorMonitor()
         self.app = None
         self._setup_app()
@@ -195,6 +201,46 @@ class WebMonitor:
     def _setup_routes(self):
         """Setup API routes."""
         
+        # Authentication endpoints (public)
+        @self.app.post("/api/auth/login", response_model=TokenResponse)
+        async def login(request: LoginRequest):
+            """Login and receive an access token."""
+            user = auth_manager.authenticate_user(request.username, request.password)
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect username or password",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            access_token = auth_manager.create_access_token(
+                data={"sub": user["username"]}
+            )
+            
+            return TokenResponse(
+                access_token=access_token,
+                expires_in=auth_manager.access_token_expire_minutes * 60
+            )
+        
+        @self.app.post("/api/auth/verify")
+        async def verify_token(current_user: Dict[str, Any] = Depends(get_current_user)):
+            """Verify the current token is valid."""
+            return {
+                "valid": True,
+                "username": current_user["username"],
+                "is_admin": current_user["user"].get("is_admin", False)
+            }
+        
+        # Public endpoints - HTML pages
+        @self.app.get("/login.html")
+        async def login_page():
+            """Serve the login page."""
+            html_file = Path(__file__).parent / "static" / "login.html"
+            if html_file.exists():
+                return FileResponse(html_file, media_type="text/html")
+            else:
+                return HTMLResponse(content="<h1>Login page not found</h1>", status_code=404)
+        
         @self.app.get("/")
         async def index():
             """Serve the main dashboard."""
@@ -230,7 +276,10 @@ class WebMonitor:
                 </html>
                 """)
         
-        @self.app.get("/api/status")
+        # Create dependency for auth if enabled
+        auth_dependency = Depends(get_current_user) if self.enable_auth else None
+        
+        @self.app.get("/api/status", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_status():
             """Get overall system status."""
             return {
@@ -241,7 +290,7 @@ class WebMonitor:
                 "system_metrics": self.monitor.metrics_cache.get("system", {})
             }
         
-        @self.app.get("/api/orchestrators")
+        @self.app.get("/api/orchestrators", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_orchestrators():
             """Get all active orchestrators."""
             return {
@@ -249,7 +298,7 @@ class WebMonitor:
                 "count": len(self.monitor.active_orchestrators)
             }
         
-        @self.app.get("/api/orchestrators/{orchestrator_id}")
+        @self.app.get("/api/orchestrators/{orchestrator_id}", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_orchestrator(orchestrator_id: str):
             """Get specific orchestrator status."""
             status = self.monitor.get_orchestrator_status(orchestrator_id)
@@ -257,7 +306,7 @@ class WebMonitor:
                 raise HTTPException(status_code=404, detail="Orchestrator not found")
             return status
         
-        @self.app.get("/api/orchestrators/{orchestrator_id}/tasks")
+        @self.app.get("/api/orchestrators/{orchestrator_id}/tasks", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_orchestrator_tasks(orchestrator_id: str):
             """Get task queue status for an orchestrator."""
             if orchestrator_id not in self.monitor.active_orchestrators:
@@ -271,7 +320,7 @@ class WebMonitor:
                 "tasks": task_status
             }
         
-        @self.app.post("/api/orchestrators/{orchestrator_id}/pause")
+        @self.app.post("/api/orchestrators/{orchestrator_id}/pause", dependencies=[auth_dependency] if self.enable_auth else [])
         async def pause_orchestrator(orchestrator_id: str):
             """Pause an orchestrator."""
             if orchestrator_id not in self.monitor.active_orchestrators:
@@ -282,7 +331,7 @@ class WebMonitor:
             
             return {"status": "paused", "orchestrator_id": orchestrator_id}
         
-        @self.app.post("/api/orchestrators/{orchestrator_id}/resume")
+        @self.app.post("/api/orchestrators/{orchestrator_id}/resume", dependencies=[auth_dependency] if self.enable_auth else [])
         async def resume_orchestrator(orchestrator_id: str):
             """Resume an orchestrator."""
             if orchestrator_id not in self.monitor.active_orchestrators:
@@ -293,12 +342,12 @@ class WebMonitor:
             
             return {"status": "resumed", "orchestrator_id": orchestrator_id}
         
-        @self.app.get("/api/metrics")
+        @self.app.get("/api/metrics", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_metrics():
             """Get system metrics."""
             return self.monitor.metrics_cache
         
-        @self.app.get("/api/history")
+        @self.app.get("/api/history", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_history():
             """Get execution history."""
             # Load history from metrics files
@@ -316,9 +365,71 @@ class WebMonitor:
             
             return {"history": history[-50:]}  # Return last 50 entries
         
+        # Admin endpoints for user management
+        @self.app.post("/api/admin/users", dependencies=[Depends(require_admin)] if self.enable_auth else [])
+        async def add_user(username: str, password: str, is_admin: bool = False):
+            """Add a new user (admin only)."""
+            if auth_manager.add_user(username, password, is_admin):
+                return {"status": "success", "message": f"User {username} created"}
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="User already exists"
+                )
+        
+        @self.app.delete("/api/admin/users/{username}", dependencies=[Depends(require_admin)] if self.enable_auth else [])
+        async def remove_user(username: str):
+            """Remove a user (admin only)."""
+            if auth_manager.remove_user(username):
+                return {"status": "success", "message": f"User {username} removed"}
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot remove user"
+                )
+        
+        @self.app.post("/api/auth/change-password", dependencies=[auth_dependency] if self.enable_auth else [])
+        async def change_password(
+            old_password: str, 
+            new_password: str, 
+            current_user: Dict[str, Any] = Depends(get_current_user) if self.enable_auth else None
+        ):
+            """Change the current user's password."""
+            if not self.enable_auth:
+                raise HTTPException(status_code=404, detail="Authentication not enabled")
+            
+            # Verify old password
+            user = auth_manager.authenticate_user(current_user["username"], old_password)
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect old password"
+                )
+            
+            # Update password
+            if auth_manager.update_password(current_user["username"], new_password):
+                return {"status": "success", "message": "Password updated"}
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to update password"
+                )
+        
         @self.app.websocket("/ws")
-        async def websocket_endpoint(websocket: WebSocket):
+        async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
             """WebSocket endpoint for real-time updates."""
+            # Verify token if auth is enabled
+            if self.enable_auth and token:
+                try:
+                    auth_manager.verify_token(token)
+                except HTTPException:
+                    await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                    return
+            elif self.enable_auth:
+                # Auth is enabled but no token provided
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+            
             await websocket.accept()
             self.monitor.websocket_clients.append(websocket)
             

@@ -591,7 +591,9 @@
                 Ralph Orchestrator Monitor
             </h1>
             <div class="header-actions">
-                <span id="connectionState">Connecting...</span>
+                <span id="userInfo" style="font-size: 14px; color: var(--text-secondary); margin-right: 10px;"></span>
+                <button onclick="logout()" style="background: var(--danger-color); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Logout</button>
+                <span id="connectionState" style="margin: 0 10px;">Connecting...</span>
                 <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
             </div>
         </div>
@@ -720,6 +722,30 @@
         let logsBuffer = [];
         const maxLogs = 100;
 
+        // Helper function for authenticated API calls
+        async function authenticatedFetch(url, options = {}) {
+            const token = localStorage.getItem('ralph_auth_token');
+            
+            // Add authentication header if token exists
+            if (token) {
+                options.headers = {
+                    ...options.headers,
+                    'Authorization': `Bearer ${token}`
+                };
+            }
+            
+            const response = await fetch(url, options);
+            
+            // If unauthorized, redirect to login
+            if (response.status === 401) {
+                localStorage.removeItem('ralph_auth_token');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            return response;
+        }
+
         // Theme management
         function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -743,7 +769,10 @@
         // WebSocket connection management
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const token = localStorage.getItem('ralph_auth_token');
+            const wsUrl = token 
+                ? `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`
+                : `${protocol}//${window.location.host}/ws`;
 
             try {
                 ws = new WebSocket(wsUrl);
@@ -974,7 +1003,7 @@
 
         async function refreshOrchestrators() {
             try {
-                const response = await fetch('/api/orchestrators');
+                const response = await authenticatedFetch('/api/orchestrators');
                 const data = await response.json();
                 updateOrchestrators(data.orchestrators);
             } catch (e) {
@@ -1009,7 +1038,7 @@
 
         async function loadHistory() {
             try {
-                const response = await fetch('/api/history');
+                const response = await authenticatedFetch('/api/history');
                 const data = await response.json();
                 updateHistory(data.history);
             } catch (e) {
@@ -1184,7 +1213,7 @@
             // Refresh metrics every 5 seconds as backup
             setInterval(async () => {
                 try {
-                    const response = await fetch('/api/metrics');
+                    const response = await authenticatedFetch('/api/metrics');
                     const metrics = await response.json();
                     if (metrics.system) {
                         updateSystemMetrics(metrics.system);
