@@ -14,8 +14,19 @@ Main orchestrator class managing the execution loop.
 
 ```python
 class RalphOrchestrator:
-    def __init__(self, config: RalphConfig):
-        """Initialize the orchestrator with configuration."""
+    def __init__(
+        self,
+        prompt_file_or_config = None,
+        primary_tool: str = "claude",
+        max_iterations: int = 100,
+        max_runtime: int = 14400,
+        track_costs: bool = False,
+        max_cost: float = 10.0,
+        checkpoint_interval: int = 5,
+        archive_dir: str = "./prompts/archive",
+        verbose: bool = False
+    ):
+        """Initialize the orchestrator with configuration or individual parameters."""
 ```
 
 #### Methods
@@ -23,13 +34,15 @@ class RalphOrchestrator:
 ##### `run()`
 
 ```python
-def run(self) -> Dict[str, Any]:
-    """
-    Run the orchestration loop until completion or limits reached.
-    
-    Returns:
-        Dict containing final metrics and status
-    """
+def run(self) -> None:
+    """Run the orchestration loop until completion or limits reached."""
+```
+
+##### `arun()`
+
+```python
+async def arun(self) -> None:
+    """Run the orchestration loop asynchronously."""
 ```
 
 ### `RalphConfig`
@@ -43,7 +56,22 @@ class RalphConfig:
     prompt_file: str = "PROMPT.md"
     max_iterations: int = 100
     max_runtime: int = 14400
-    # ... additional fields
+    checkpoint_interval: int = 5
+    retry_delay: int = 2
+    archive_prompts: bool = True
+    git_checkpoint: bool = True
+    verbose: bool = False
+    dry_run: bool = False
+    max_tokens: int = 1000000
+    max_cost: float = 50.0
+    context_window: int = 200000
+    context_threshold: float = 0.8
+    metrics_interval: int = 10
+    enable_metrics: bool = True
+    max_prompt_size: int = 10485760
+    allow_unsafe_paths: bool = False
+    agent_args: List[str] = field(default_factory=list)
+    adapters: Dict[str, AdapterConfig] = field(default_factory=dict)
 ```
 
 ### `AgentType`
@@ -67,21 +95,23 @@ def main() -> int:
     """Main entry point for CLI execution."""
 ```
 
-### `detect_agent()`
-
-```python
-def detect_agent() -> Optional[AgentType]:
-    """Detect available AI agent."""
-```
-
 ## Usage Examples
 
 ```python
 from ralph_orchestrator import RalphOrchestrator, RalphConfig
 
+# Using config object
 config = RalphConfig(agent=AgentType.CLAUDE)
 orchestrator = RalphOrchestrator(config)
-result = orchestrator.run()
+orchestrator.run()
+
+# Using individual parameters
+orchestrator = RalphOrchestrator(
+    prompt_file_or_config="PROMPT.md",
+    primary_tool="claude",
+    max_iterations=50
+)
+orchestrator.run()
 ```
 
 The main orchestration module that implements the Ralph Wiggum technique.

@@ -196,31 +196,41 @@ def generate_prompt(rough_ideas: List[str], output_file: str = "PROMPT.md", inte
     
     try:
         # Use the specified agent to generate the prompt
-        prompt_content = generate_prompt_with_agent(rough_ideas, agent)
+        # The agent will create/edit the file directly
+        success = generate_prompt_with_agent(rough_ideas, agent, output_file)
         
-        with open(output_path, 'w') as f:
-            f.write(prompt_content)
-        
-        print(f"Generated structured prompt: {output_file}")
-        print(f"You can now run: ralph run -p {output_file}")
+        if success and output_path.exists():
+            print(f"Generated structured prompt: {output_file}")
+            print(f"You can now run: ralph run -p {output_file}")
+        else:
+            print(f"Failed to generate prompt. Please check if {output_file} was created.")
         
     except Exception as e:
         print(f"Error generating prompt: {e}")
         return
 
 
-def generate_prompt_with_agent(rough_ideas: List[str], agent: str = "auto") -> str:
-    """Use AI agent to generate structured prompt from rough ideas."""
+def generate_prompt_with_agent(rough_ideas: List[str], agent: str = "auto", output_file: str = "PROMPT.md") -> bool:
+    """Use AI agent to generate structured prompt from rough ideas.
+    
+    Returns:
+        bool: True if the prompt was successfully generated, False otherwise
+    """
     
     # Create a generation prompt for the AI
     ideas_text = "\n".join(f"- {idea}" for idea in rough_ideas)
     
-    generation_prompt = f"""Convert these rough ideas into a structured PROMPT.md file:
+    generation_prompt = f"""Convert these rough ideas into a structured PROMPT.md file and WRITE it to {output_file}:
 
 ROUGH IDEAS:
 {ideas_text}
 
-Generate a well-structured task prompt following this EXACT format:
+INSTRUCTIONS:
+1. Create or overwrite the file {output_file} with the structured task prompt
+2. Use your file writing tools to create the file
+3. The file should contain ONLY the structured markdown with no extra commentary
+
+The file content should follow this EXACT format:
 
 # Task: [Clear, actionable task title]
 
@@ -249,15 +259,15 @@ Generate a well-structured task prompt following this EXACT format:
 <!-- Mark TASK_COMPLETE when all requirements are met -->
 
 IMPORTANT: 
-1. Output ONLY the structured markdown content
+1. WRITE the content to {output_file} using your file writing tools
 2. Make requirements specific and actionable with checkboxes
 3. Include relevant technical specifications for the task type
 4. Make success criteria measurable and clear
 5. Always end with the TASK_COMPLETE comment
-6. DO NOT include any explanations or conversation"""
+6. The file should contain ONLY the structured markdown"""
 
     # Try to use the specified agent or auto-detect
-    response = None
+    success = False
     
     # Import adapters
     try:
@@ -272,167 +282,48 @@ IMPORTANT:
         try:
             adapter = ClaudeAdapter("claude")
             if adapter.available:
-                result = adapter.execute(generation_prompt)
-                if result.success and result.output:
-                    response = result.output
+                # Enable file tools for the agent to write PROMPT.md
+                result = adapter.execute(
+                    generation_prompt,
+                    enable_all_tools=True,
+                    allowed_tools=['Write', 'Edit', 'MultiEdit']
+                )
+                if result.success:
+                    success = True
+                    # Check if the file was created
+                    return Path(output_file).exists()
         except Exception as e:
             if agent != "auto":
                 print(f"Claude adapter failed: {e}")
     
-    if not response and (agent == "gemini" or agent == "auto"):
+    if not success and (agent == "gemini" or agent == "auto"):
         try:
             adapter = GeminiAdapter("gemini")
             if adapter.available:
                 result = adapter.execute(generation_prompt)
-                if result.success and result.output:
-                    response = result.output
+                if result.success:
+                    success = True
+                    # Check if the file was created
+                    return Path(output_file).exists()
         except Exception as e:
             if agent != "auto":
                 print(f"Gemini adapter failed: {e}")
     
-    if not response and (agent == "qchat" or agent == "auto"):
+    if not success and (agent == "qchat" or agent == "auto"):
         try:
             adapter = QChatAdapter("qchat")
             if adapter.available:
                 result = adapter.execute(generation_prompt)
-                if result.success and result.output:
-                    response = result.output
+                if result.success:
+                    success = True
+                    # Check if the file was created
+                    return Path(output_file).exists()
         except Exception as e:
             if agent != "auto":
                 print(f"QChat adapter failed: {e}")
     
-    # Process response if we got one
-    if response:
-        cleaned_response = response.strip()
-        
-        # Remove any conversational elements or markdown code blocks
-        if cleaned_response.startswith('```markdown'):
-            cleaned_response = cleaned_response.replace('```markdown', '').replace('```', '').strip()
-        
-        # Extract markdown content if it exists
-        if '# Task:' in cleaned_response:
-            start_idx = cleaned_response.find('# Task:')
-            markdown_content = cleaned_response[start_idx:]
-            # Find the end marker
-            if '<!-- Mark TASK_COMPLETE when all requirements are met -->' in markdown_content:
-                end_idx = markdown_content.find('<!-- Mark TASK_COMPLETE when all requirements are met -->') + len('<!-- Mark TASK_COMPLETE when all requirements are met -->')
-                markdown_content = markdown_content[:end_idx]
-            return markdown_content.strip()
-        return cleaned_response
-    
-    # Fallback to legacy approaches if adapters aren't available or failed
-    
-    # Try Claude SDK directly as a fallback
-    if not response:
-        try:
-            from claude_code_sdk import query
-            
-            # Add system context to the prompt itself
-            full_prompt = f"""You are a helpful assistant that generates structured markdown content. Output only the requested content with no additional commentary.
-
-{generation_prompt}"""
-            
-            # Use Claude SDK's query function for simple text generation
-            response = query(full_prompt)
-            
-            if response and response.strip():
-                # Clean up the response to ensure it's just the markdown
-                cleaned_response = response.strip()
-                
-                # Remove any conversational elements at the beginning/end
-                if cleaned_response.startswith('```markdown'):
-                    cleaned_response = cleaned_response.replace('```markdown', '').replace('```', '').strip()
-                
-                # Extract markdown content if it exists
-                if '# Task:' in cleaned_response:
-                    start_idx = cleaned_response.find('# Task:')
-                    markdown_content = cleaned_response[start_idx:]
-                    # Find the end marker
-                    if '<!-- Mark TASK_COMPLETE when all requirements are met -->' in markdown_content:
-                        end_idx = markdown_content.find('<!-- Mark TASK_COMPLETE when all requirements are met -->') + len('<!-- Mark TASK_COMPLETE when all requirements are met -->')
-                        markdown_content = markdown_content[:end_idx]
-                    return markdown_content.strip()
-            
-        except Exception as e:
-            if agent == "claude":
-                print(f"Claude SDK failed: {e}")
-    
-    # Fallback to subprocess approach
-    if not response:
-        try:
-            import subprocess
-            
-            # Create a temporary prompt file for the AI to read
-            import tempfile
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
-                f.write(generation_prompt)
-                temp_prompt_file = f.name
-            
-            try:
-                # Try claude command with simple prompt
-                result = subprocess.run(
-                    ['claude', '-p', generation_prompt],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-                
-                if result.returncode == 0 and result.stdout.strip():
-                    output = result.stdout.strip()
-                    # Extract just the markdown content if wrapped in explanations
-                    if '# Task:' in output:
-                        start_idx = output.find('# Task:')
-                        markdown_content = output[start_idx:]
-                        # Find the end marker
-                        if '<!-- Mark TASK_COMPLETE when all requirements are met -->' in markdown_content:
-                            end_idx = markdown_content.find('<!-- Mark TASK_COMPLETE when all requirements are met -->') + len('<!-- Mark TASK_COMPLETE when all requirements are met -->')
-                            markdown_content = markdown_content[:end_idx]
-                        return markdown_content.strip()
-                    return output
-                
-            except Exception:
-                pass
-            finally:
-                # Clean up temp file
-                os.unlink(temp_prompt_file)
-                
-        except Exception:
-            pass
-    
-    # If all AI attempts fail, fall back to a simple template
-    main_task = rough_ideas[0] if rough_ideas else "Complete the described task"
-    additional_requirements = rough_ideas[1:] if len(rough_ideas) > 1 else []
-    
-    requirements_list = ["Core functionality implementation", "Error handling and validation", "Testing suite", "Documentation"]
-    requirements_list.extend(additional_requirements)
-    
-    requirements_text = "\n".join(f"- [ ] {req}" for req in requirements_list)
-    
-    return f"""# Task: {main_task.title()}
-
-Implement the described functionality with high quality and best practices.
-
-## Requirements
-
-{requirements_text}
-
-## Technical Specifications
-
-- Use appropriate tools and frameworks
-- Follow coding best practices  
-- Include proper error handling
-- Add comprehensive testing
-- Document the implementation
-
-## Success Criteria
-
-- All requirements are met
-- Code is clean and maintainable
-- Tests pass and provide good coverage  
-- Documentation is clear and complete
-
-<!-- Mark TASK_COMPLETE when all requirements are met -->
-"""
+    # If no adapter succeeded, return False
+    return False
 
 
 

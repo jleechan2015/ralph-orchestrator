@@ -190,7 +190,25 @@ class ClaudeAdapter(ToolAdapter):
                                 if self.verbose:
                                     tool_name = getattr(content_block, 'name', 'unknown')
                                     tool_id = getattr(content_block, 'id', 'unknown')
-                                    print(f"\n[Tool: {tool_name}]", flush=True)
+                                    tool_input = getattr(content_block, 'input', {})
+                                    
+                                    # Enhanced tool display
+                                    print(f"\n{'='*50}", flush=True)
+                                    print(f"[TOOL USE: {tool_name}]", flush=True)
+                                    print(f"  ID: {tool_id[:12]}...", flush=True)
+                                    
+                                    # Display input parameters
+                                    if tool_input:
+                                        print("  Input Parameters:", flush=True)
+                                        for key, value in tool_input.items():
+                                            # Truncate long values for display
+                                            value_str = str(value)
+                                            if len(value_str) > 100:
+                                                value_str = value_str[:97] + "..."
+                                            print(f"    - {key}: {value_str}", flush=True)
+                                    
+                                    print(f"{'='*50}", flush=True)
+                                    
                                     logger.info(f"Tool use detected: {tool_name} (id: {tool_id[:8]}...)")
                                     if hasattr(content_block, 'input'):
                                         logger.debug(f"  Tool input: {content_block.input}")

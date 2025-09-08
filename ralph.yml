@@ -33,8 +33,8 @@ adapters:
     timeout: 300              # Timeout in seconds
     max_retries: 3            # Max retry attempts
     args: []                  # Additional CLI arguments
-    env:                      # Environment variables
-      ANTHROPIC_API_KEY: ""   # Set your API key here or in environment
+    tool_permissions:         # Tool permissions for Claude
+      allow_all: true         # Allow all tools without approval
   
   q:
     enabled: true

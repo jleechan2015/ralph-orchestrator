@@ -8,7 +8,7 @@ Update the Ralph Orchestrator documentation to ensure accuracy, remove any hallu
 - [x] Identify and remove any hallucinated features or incorrect descriptions
 - [x] Update README.md to accurately reflect current functionality
 - [x] Verify all code examples in documentation are working and accurate
-- [ ] Ensure API documentation matches actual implementation
+- [x] Ensure API documentation matches actual implementation
 - [ ] Update configuration documentation to match current options
 - [ ] Remove references to non-existent features or deprecated functionality
 - [ ] Validate all installation and setup instructions
@@ -50,6 +50,13 @@ Update the Ralph Orchestrator documentation to ensure accuracy, remove any hallu
    - ✅ Basic commands like `ralph`, `ralph status`, `ralph clean` exist
    - ❌ Configuration YAML example in README doesn't match actual supported options
    - ❌ Some CLI options in documentation don't match actual CLI interface
+
+7. **API Documentation Mismatch**:
+   - ✅ FIXED: Updated docs/api/orchestrator.md to match actual RalphOrchestrator class
+   - The documented API showed methods that don't exist (iterate, checkpoint, save_state, load_state)
+   - Actual constructor takes either config object OR individual parameters
+   - run() method returns None, not Dict[str, Any]
+   - Removed references to non-existent methods and classes
 
 ## Technical Specifications
 
