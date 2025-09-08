@@ -470,6 +470,21 @@ class RalphOrchestrator:
                 self.current_task = None
                 self.task_start_time = None
     
+    def _reload_prompt(self):
+        """Reload the prompt file to pick up any changes."""
+        logger.info("Reloading prompt file due to external update")
+        # The context manager will automatically reload on next get_prompt() call
+        # Clear the context manager's cache to force reload
+        if hasattr(self.context_manager, '_load_initial_prompt'):
+            self.context_manager._load_initial_prompt()
+        
+        # Extract new tasks if the prompt has changed significantly
+        prompt = self.context_manager.get_prompt()
+        
+        # Only re-extract tasks if we don't have a current task or queue
+        if not self.current_task and not self.task_queue:
+            self._extract_tasks_from_prompt(prompt)
+    
     def get_task_status(self) -> Dict[str, Any]:
         """Get current task queue status."""
         return {

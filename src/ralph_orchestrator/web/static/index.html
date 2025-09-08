@@ -714,6 +714,34 @@
         </div>
     </div>
 
+    <!-- Prompt Editor Modal -->
+    <div id="promptModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Edit Iteration Prompt</h2>
+                <button class="modal-close" onclick="closePromptModal()">&times;</button>
+            </div>
+            <div id="promptModalContent">
+                <div style="margin-bottom: 10px;">
+                    <small style="color: var(--text-secondary);">
+                        File: <span id="promptFilePath"></span> | 
+                        Last saved: <span id="promptLastSaved">Never</span>
+                    </small>
+                </div>
+                <textarea id="promptEditor" style="width: 100%; height: 400px; font-family: 'Courier New', monospace; font-size: 14px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--surface); color: var(--text-primary); resize: vertical;"></textarea>
+                <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <small style="color: var(--warning-color);">⚠️ Changes will be picked up on the next iteration</small>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="reloadPrompt()" class="btn btn-secondary">Reload</button>
+                        <button onclick="savePrompt()" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // WebSocket connection
         let ws = null;
@@ -847,6 +875,9 @@
                     addLog('info', `Orchestrator unregistered: ${data.data.id}`);
                     refreshOrchestrators();
                     break;
+                case 'prompt_updated':
+                    addLog('info', `Prompt updated for orchestrator ${data.data.orchestrator_id}`);
+                    break;
                 case 'task_update':
                     addLog('info', `Task update: ${data.data.message}`);
                     break;
@@ -951,6 +982,7 @@
                         <button class="btn btn-warning" onclick="pauseOrchestrator('${orch.id}')">Pause</button>
                         <button class="btn btn-success" onclick="resumeOrchestrator('${orch.id}')">Resume</button>
                         <button class="btn btn-secondary" onclick="showTaskDetails('${orch.id}')">Tasks</button>
+                        <button class="btn btn-primary" onclick="editPrompt('${orch.id}')">Edit Prompt</button>
                     </div>
                 </div>
                 `;
@@ -1197,10 +1229,98 @@
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('taskModal');
-            if (event.target === modal) {
+            const taskModal = document.getElementById('taskModal');
+            const promptModal = document.getElementById('promptModal');
+            if (event.target === taskModal) {
                 closeTaskModal();
+            } else if (event.target === promptModal) {
+                closePromptModal();
             }
+        }
+        
+        // Prompt Editor Functions
+        let currentOrchestratorId = null;
+        
+        async function editPrompt(orchestratorId) {
+            currentOrchestratorId = orchestratorId;
+            const modal = document.getElementById('promptModal');
+            const editor = document.getElementById('promptEditor');
+            const filePath = document.getElementById('promptFilePath');
+            const lastSaved = document.getElementById('promptLastSaved');
+            
+            try {
+                // Fetch current prompt
+                const response = await authenticatedFetch(`/api/orchestrators/${orchestratorId}/prompt`);
+                const data = await response.json();
+                
+                editor.value = data.content;
+                filePath.textContent = data.prompt_file;
+                
+                if (data.last_modified) {
+                    const date = new Date(data.last_modified * 1000);
+                    lastSaved.textContent = date.toLocaleString();
+                } else {
+                    lastSaved.textContent = 'Never';
+                }
+                
+                modal.classList.add('show');
+            } catch (e) {
+                console.error('Error fetching prompt:', e);
+                showNotification('Error', 'Failed to fetch prompt');
+            }
+        }
+        
+        async function savePrompt() {
+            if (!currentOrchestratorId) return;
+            
+            const editor = document.getElementById('promptEditor');
+            const lastSaved = document.getElementById('promptLastSaved');
+            
+            try {
+                const response = await authenticatedFetch(`/api/orchestrators/${currentOrchestratorId}/prompt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: editor.value
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showNotification('Success', 'Prompt saved successfully. Changes will be picked up on next iteration.');
+                    lastSaved.textContent = new Date().toLocaleString();
+                } else {
+                    throw new Error('Failed to save prompt');
+                }
+            } catch (e) {
+                console.error('Error saving prompt:', e);
+                showNotification('Error', 'Failed to save prompt');
+            }
+        }
+        
+        async function reloadPrompt() {
+            if (!currentOrchestratorId) return;
+            
+            try {
+                const response = await authenticatedFetch(`/api/orchestrators/${currentOrchestratorId}/prompt`);
+                const data = await response.json();
+                
+                const editor = document.getElementById('promptEditor');
+                editor.value = data.content;
+                
+                showNotification('Success', 'Prompt reloaded from file');
+            } catch (e) {
+                console.error('Error reloading prompt:', e);
+                showNotification('Error', 'Failed to reload prompt');
+            }
+        }
+        
+        function closePromptModal() {
+            const modal = document.getElementById('promptModal');
+            modal.classList.remove('show');
+            currentOrchestratorId = null;
         }
 
         // Initialize on page load

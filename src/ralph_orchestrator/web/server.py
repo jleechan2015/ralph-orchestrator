@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from pydantic import BaseModel
 import uvicorn
 import psutil
 
@@ -29,6 +30,11 @@ from .auth import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class PromptUpdateRequest(BaseModel):
+    """Request model for updating orchestrator prompt."""
+    content: str
 
 
 class OrchestratorMonitor:
@@ -341,6 +347,67 @@ class WebMonitor:
             orchestrator.stop_requested = False
             
             return {"status": "resumed", "orchestrator_id": orchestrator_id}
+        
+        @self.app.get("/api/orchestrators/{orchestrator_id}/prompt", dependencies=[auth_dependency] if self.enable_auth else [])
+        async def get_orchestrator_prompt(orchestrator_id: str):
+            """Get the current prompt for an orchestrator."""
+            if orchestrator_id not in self.monitor.active_orchestrators:
+                raise HTTPException(status_code=404, detail="Orchestrator not found")
+            
+            orchestrator = self.monitor.active_orchestrators[orchestrator_id]
+            prompt_file = orchestrator.prompt_file
+            
+            if not prompt_file.exists():
+                raise HTTPException(status_code=404, detail="Prompt file not found")
+            
+            content = prompt_file.read_text()
+            return {
+                "orchestrator_id": orchestrator_id,
+                "prompt_file": str(prompt_file),
+                "content": content,
+                "last_modified": prompt_file.stat().st_mtime
+            }
+        
+        @self.app.post("/api/orchestrators/{orchestrator_id}/prompt", dependencies=[auth_dependency] if self.enable_auth else [])
+        async def update_orchestrator_prompt(orchestrator_id: str, request: PromptUpdateRequest):
+            """Update the prompt for an orchestrator."""
+            if orchestrator_id not in self.monitor.active_orchestrators:
+                raise HTTPException(status_code=404, detail="Orchestrator not found")
+            
+            orchestrator = self.monitor.active_orchestrators[orchestrator_id]
+            prompt_file = orchestrator.prompt_file
+            
+            try:
+                # Create backup before updating
+                backup_file = prompt_file.with_suffix(f".{int(time.time())}.backup")
+                if prompt_file.exists():
+                    backup_file.write_text(prompt_file.read_text())
+                
+                # Write the new content
+                prompt_file.write_text(request.content)
+                
+                # Notify the orchestrator of the update
+                if hasattr(orchestrator, '_reload_prompt'):
+                    orchestrator._reload_prompt()
+                
+                # Broadcast update to WebSocket clients
+                await self.monitor._broadcast_to_clients({
+                    "type": "prompt_updated",
+                    "data": {
+                        "orchestrator_id": orchestrator_id,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                })
+                
+                return {
+                    "status": "success",
+                    "orchestrator_id": orchestrator_id,
+                    "backup_file": str(backup_file),
+                    "timestamp": datetime.now().isoformat()
+                }
+            except Exception as e:
+                logger.error(f"Error updating prompt: {e}")
+                raise HTTPException(status_code=500, detail=f"Failed to update prompt: {str(e)}")
         
         @self.app.get("/api/metrics", dependencies=[auth_dependency] if self.enable_auth else [])
         async def get_metrics():
