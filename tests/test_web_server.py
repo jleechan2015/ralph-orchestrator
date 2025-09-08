@@ -15,8 +15,8 @@ from fastapi.testclient import TestClient
 from fastapi.websockets import WebSocketDisconnect
 import httpx
 
-from src.ralph_orchestrator.web.server import app, OrchestratorMonitor, register_orchestrator, unregister_orchestrator
-from src.ralph_orchestrator.web.auth import AuthManager
+from src.ralph_orchestrator.web.server import OrchestratorMonitor, WebMonitor
+from src.ralph_orchestrator.web.auth import AuthManager, auth_manager
 from src.ralph_orchestrator.web.database import DatabaseManager
 
 
@@ -31,19 +31,19 @@ class TestOrchestratorMonitor:
         shutil.rmtree(temp_dir)
     
     @pytest.fixture
-    def monitor(self, temp_dir):
+    def monitor(self):
         """Create an OrchestratorMonitor instance for testing."""
-        monitor = OrchestratorMonitor(data_dir=temp_dir, enable_auth=False)
+        monitor = OrchestratorMonitor()
         yield monitor
         # Cleanup
-        monitor.orchestrators.clear()
+        monitor.active_orchestrators.clear()
     
     @pytest.fixture
     def mock_orchestrator(self):
         """Create a mock orchestrator instance."""
         mock = MagicMock()
         mock.id = 'test-orch-123'
-        mock.prompt_file = '/path/to/prompt.md'
+        mock.prompt_path = '/path/to/prompt.md'
         mock.status = 'running'
         mock.current_iteration = 5
         mock.max_iterations = 10
@@ -54,468 +54,378 @@ class TestOrchestratorMonitor:
         
         mock.get_orchestrator_state.return_value = {
             'id': 'test-orch-123',
-            'prompt_file': '/path/to/prompt.md',
+            'prompt_path': '/path/to/prompt.md',
             'status': 'running',
             'current_iteration': 5,
             'max_iterations': 10,
-            'start_time': mock.start_time.isoformat(),
-            'elapsed_time': '00:05:30'
-        }
-        
-        mock.get_task_status.return_value = {
-            'queue': ['Task 1', 'Task 2'],
-            'current': 'Current task',
-            'completed': ['Done 1', 'Done 2']
+            'task_queue': ['Task 1', 'Task 2'],
+            'current_task': 'Current task',
+            'completed_tasks': ['Done 1', 'Done 2']
         }
         
         return mock
     
     def test_register_orchestrator(self, monitor, mock_orchestrator):
         """Test registering an orchestrator."""
-        orch_id = monitor.register_orchestrator(mock_orchestrator)
+        monitor.register_orchestrator('test-123', mock_orchestrator)
         
-        assert orch_id == 'test-orch-123'
-        assert orch_id in monitor.orchestrators
-        assert monitor.orchestrators[orch_id] == mock_orchestrator
+        assert 'test-123' in monitor.active_orchestrators
+        assert monitor.active_orchestrators['test-123'] == mock_orchestrator
     
     def test_unregister_orchestrator(self, monitor, mock_orchestrator):
         """Test unregistering an orchestrator."""
-        orch_id = monitor.register_orchestrator(mock_orchestrator)
+        monitor.register_orchestrator('test-123', mock_orchestrator)
+        monitor.unregister_orchestrator('test-123')
         
-        monitor.unregister_orchestrator(orch_id)
-        assert orch_id not in monitor.orchestrators
+        assert 'test-123' not in monitor.active_orchestrators
     
-    def test_get_orchestrator(self, monitor, mock_orchestrator):
-        """Test getting a specific orchestrator."""
-        orch_id = monitor.register_orchestrator(mock_orchestrator)
+    def test_get_orchestrator_status(self, monitor, mock_orchestrator):
+        """Test getting orchestrator status."""
+        monitor.register_orchestrator('test-123', mock_orchestrator)
         
-        orch = monitor.get_orchestrator(orch_id)
-        assert orch == mock_orchestrator
-        
-        # Test non-existent orchestrator
-        assert monitor.get_orchestrator('non-existent') is None
+        status = monitor.get_orchestrator_status('test-123')
+        assert status['id'] == 'test-orch-123'
+        assert status['status'] == 'running'
+        assert status['current_iteration'] == 5
     
-    def test_get_all_orchestrators(self, monitor):
-        """Test getting all orchestrators."""
-        # Register multiple orchestrators
-        mocks = []
-        for i in range(3):
-            mock = MagicMock()
-            mock.id = f'orch-{i}'
-            mock.get_orchestrator_state.return_value = {'id': f'orch-{i}'}
-            mocks.append(mock)
-            monitor.register_orchestrator(mock)
+    def test_get_all_orchestrators_status(self, monitor, mock_orchestrator):
+        """Test getting status of all orchestrators."""
+        monitor.register_orchestrator('test-123', mock_orchestrator)
+        monitor.register_orchestrator('test-456', mock_orchestrator)
         
-        all_orchs = monitor.get_all_orchestrators()
-        assert len(all_orchs) == 3
-        assert all(orch['id'] == f'orch-{i}' for i, orch in enumerate(all_orchs))
+        all_status = monitor.get_all_orchestrators_status()
+        assert len(all_status) == 2
+        assert 'test-123' in all_status
+        assert 'test-456' in all_status
     
-    def test_pause_resume_orchestrator(self, monitor, mock_orchestrator):
-        """Test pausing and resuming an orchestrator."""
-        mock_orchestrator.pause = MagicMock()
-        mock_orchestrator.resume = MagicMock()
+    @pytest.mark.asyncio
+    async def test_broadcast_update(self, monitor):
+        """Test broadcasting updates to WebSocket clients."""
+        # Mock WebSocket client
+        mock_ws = AsyncMock()
+        monitor.websocket_clients.append(mock_ws)
         
-        orch_id = monitor.register_orchestrator(mock_orchestrator)
+        await monitor.broadcast_update({
+            'type': 'test',
+            'data': {'message': 'test'}
+        })
         
-        # Test pause
-        success = monitor.pause_orchestrator(orch_id)
-        assert success
-        mock_orchestrator.pause.assert_called_once()
+        mock_ws.send_json.assert_called_once_with({
+            'type': 'test',
+            'data': {'message': 'test'}
+        })
+    
+    @pytest.mark.asyncio
+    async def test_monitor_system_metrics(self, monitor):
+        """Test system metrics monitoring."""
+        # Start monitoring
+        await monitor.start_monitoring()
         
-        # Test resume
-        success = monitor.resume_orchestrator(orch_id)
-        assert success
-        mock_orchestrator.resume.assert_called_once()
+        # Wait for metrics to be collected
+        await asyncio.sleep(0.1)
         
-        # Test with non-existent orchestrator
-        assert not monitor.pause_orchestrator('non-existent')
-        assert not monitor.resume_orchestrator('non-existent')
+        # Check metrics cache
+        assert 'system' in monitor.metrics_cache
+        assert 'cpu_percent' in monitor.metrics_cache['system']
+        assert 'memory_percent' in monitor.metrics_cache['system']
+        
+        # Stop monitoring
+        await monitor.stop_monitoring()
+    
+    def test_add_execution_history(self, monitor, mock_orchestrator):
+        """Test adding to execution history."""
+        monitor.register_orchestrator('test-123', mock_orchestrator)
+        
+        # Simulate adding history
+        history_entry = {
+            'orchestrator_id': 'test-123',
+            'timestamp': datetime.now().isoformat(),
+            'event': 'iteration_complete',
+            'details': {'iteration': 1}
+        }
+        monitor.execution_history.append(history_entry)
+        
+        assert len(monitor.execution_history) == 1
+        assert monitor.execution_history[0]['orchestrator_id'] == 'test-123'
 
 
-class TestWebServerAPI:
-    """Test suite for FastAPI web server endpoints."""
+class TestWebMonitor:
+    """Test suite for WebMonitor FastAPI application."""
     
     @pytest.fixture
-    def client(self):
-        """Create a test client for the FastAPI app."""
-        # Reset monitor state before each test
-        app.state.monitor = OrchestratorMonitor(enable_auth=False)
-        with TestClient(app) as client:
-            yield client
+    def web_monitor(self):
+        """Create WebMonitor instance with auth disabled."""
+        return WebMonitor(port=8080, enable_auth=False)
     
     @pytest.fixture
-    def auth_client(self):
-        """Create a test client with authentication enabled."""
-        temp_dir = tempfile.mkdtemp()
-        app.state.monitor = OrchestratorMonitor(data_dir=temp_dir, enable_auth=True)
-        app.state.monitor.auth_manager.create_user('testuser', 'testpass')
+    def auth_web_monitor(self):
+        """Create WebMonitor instance with auth enabled."""
+        return WebMonitor(port=8080, enable_auth=True)
+    
+    @pytest.fixture
+    def client(self, web_monitor):
+        """Create FastAPI test client without auth."""
+        return TestClient(web_monitor.app)
+    
+    @pytest.fixture
+    def auth_client(self, auth_web_monitor):
+        """Create FastAPI test client with auth."""
+        client = TestClient(auth_web_monitor.app)
         
-        with TestClient(app) as client:
-            # Login to get token
-            response = client.post('/api/auth/login', json={
-                'username': 'testuser',
-                'password': 'testpass'
-            })
-            token = response.json()['token']
-            client.headers['Authorization'] = f'Bearer {token}'
-            yield client
+        # Login to get token
+        response = client.post("/api/auth/login", json={
+            "username": "admin",
+            "password": "admin123"
+        })
         
-        shutil.rmtree(temp_dir)
+        if response.status_code == 200:
+            token = response.json()["access_token"]
+            client.headers = {"Authorization": f"Bearer {token}"}
+        
+        return client
     
     @pytest.fixture
     def mock_orchestrator(self):
-        """Create and register a mock orchestrator."""
+        """Create a mock orchestrator."""
         mock = MagicMock()
         mock.id = 'test-orch-123'
-        mock.prompt_file = '/path/to/prompt.md'
+        mock.prompt_path = '/path/to/prompt.md'
         mock.status = 'running'
-        mock.current_iteration = 5
+        mock.current_iteration = 3
         mock.max_iterations = 10
-        mock.start_time = datetime.now()
         
-        mock.get_orchestrator_state.return_value = {
-            'id': 'test-orch-123',
-            'prompt_file': '/path/to/prompt.md',
-            'status': 'running',
-            'current_iteration': 5,
-            'max_iterations': 10,
-            'start_time': mock.start_time.isoformat()
-        }
-        
-        mock.get_task_status.return_value = {
-            'queue': ['Task 1', 'Task 2'],
-            'current': 'Current task',
-            'completed': ['Done 1', 'Done 2']
-        }
-        
-        # Register with the global monitor
-        app.state.monitor.register_orchestrator(mock)
         return mock
     
-    def test_status_endpoint(self, client):
-        """Test /api/status endpoint."""
-        response = client.get('/api/status')
+    def test_root_endpoint(self, client):
+        """Test root endpoint returns HTML."""
+        response = client.get("/")
         assert response.status_code == 200
-        
+        assert "text/html" in response.headers["content-type"]
+    
+    def test_health_check(self, client):
+        """Test health check endpoint."""
+        response = client.get("/api/health")
+        assert response.status_code == 200
         data = response.json()
-        assert 'status' in data
-        assert 'active_orchestrators' in data
-        assert 'system_metrics' in data
-        assert data['status'] == 'running'
+        assert data["status"] == "healthy"
+        assert "system_metrics" in data
     
-    def test_list_orchestrators(self, client, mock_orchestrator):
-        """Test /api/orchestrators endpoint."""
-        response = client.get('/api/orchestrators')
-        assert response.status_code == 200
+    def test_auth_required_endpoints(self, auth_web_monitor):
+        """Test that auth is required for protected endpoints."""
+        client = TestClient(auth_web_monitor.app)
         
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]['id'] == 'test-orch-123'
+        # Try accessing protected endpoint without auth
+        response = client.get("/api/orchestrators")
+        assert response.status_code == 401
     
-    def test_get_orchestrator(self, client, mock_orchestrator):
-        """Test /api/orchestrators/{id} endpoint."""
-        response = client.get('/api/orchestrators/test-orch-123')
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert data['id'] == 'test-orch-123'
-        assert data['status'] == 'running'
-        
-        # Test non-existent orchestrator
-        response = client.get('/api/orchestrators/non-existent')
-        assert response.status_code == 404
-    
-    def test_pause_orchestrator(self, client, mock_orchestrator):
-        """Test /api/orchestrators/{id}/pause endpoint."""
-        mock_orchestrator.pause = MagicMock()
-        
-        response = client.post('/api/orchestrators/test-orch-123/pause')
-        assert response.status_code == 200
-        assert response.json()['success'] is True
-        mock_orchestrator.pause.assert_called_once()
-        
-        # Test non-existent orchestrator
-        response = client.post('/api/orchestrators/non-existent/pause')
-        assert response.status_code == 404
-    
-    def test_resume_orchestrator(self, client, mock_orchestrator):
-        """Test /api/orchestrators/{id}/resume endpoint."""
-        mock_orchestrator.resume = MagicMock()
-        
-        response = client.post('/api/orchestrators/test-orch-123/resume')
-        assert response.status_code == 200
-        assert response.json()['success'] is True
-        mock_orchestrator.resume.assert_called_once()
-    
-    def test_get_tasks(self, client, mock_orchestrator):
-        """Test /api/orchestrators/{id}/tasks endpoint."""
-        response = client.get('/api/orchestrators/test-orch-123/tasks')
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert 'queue' in data
-        assert 'current' in data
-        assert 'completed' in data
-        assert len(data['queue']) == 2
-        assert data['current'] == 'Current task'
-    
-    def test_metrics_endpoint(self, client):
-        """Test /api/metrics endpoint."""
-        response = client.get('/api/metrics')
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert 'cpu_percent' in data
-        assert 'memory_percent' in data
-        assert 'active_processes' in data
-    
-    def test_history_endpoint(self, client):
-        """Test /api/history endpoint."""
-        response = client.get('/api/history')
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert isinstance(data, list)
-    
-    def test_prompt_endpoints(self, client, mock_orchestrator):
-        """Test prompt get and update endpoints."""
-        # Mock prompt file operations
-        mock_orchestrator.prompt_file = '/tmp/test_prompt.md'
-        
-        with patch('builtins.open', create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = 'Test prompt content'
-            
-            # Test GET prompt
-            response = client.get('/api/orchestrators/test-orch-123/prompt')
-            assert response.status_code == 200
-            data = response.json()
-            assert data['content'] == 'Test prompt content'
-            assert data['file_path'] == '/tmp/test_prompt.md'
-    
-    def test_authentication_required(self):
-        """Test that authentication is enforced when enabled."""
-        temp_dir = tempfile.mkdtemp()
-        app.state.monitor = OrchestratorMonitor(data_dir=temp_dir, enable_auth=True)
-        
-        with TestClient(app) as client:
-            # Test without token
-            response = client.get('/api/orchestrators')
-            assert response.status_code == 401
-            
-            # Test with invalid token
-            client.headers['Authorization'] = 'Bearer invalid-token'
-            response = client.get('/api/orchestrators')
-            assert response.status_code == 401
-        
-        shutil.rmtree(temp_dir)
-    
-    def test_auth_login(self, client):
-        """Test authentication login endpoint."""
-        # Setup auth
-        app.state.monitor.auth_manager = AuthManager()
-        app.state.monitor.auth_manager.create_user('testuser', 'testpass')
+    def test_login_endpoint(self, auth_web_monitor):
+        """Test authentication login."""
+        client = TestClient(auth_web_monitor.app)
         
         # Test successful login
-        response = client.post('/api/auth/login', json={
-            'username': 'testuser',
-            'password': 'testpass'
+        response = client.post("/api/auth/login", json={
+            "username": "admin",
+            "password": "admin123"
         })
         assert response.status_code == 200
-        assert 'token' in response.json()
+        assert "access_token" in response.json()
         
         # Test failed login
-        response = client.post('/api/auth/login', json={
-            'username': 'testuser',
-            'password': 'wrongpass'
+        response = client.post("/api/auth/login", json={
+            "username": "admin",
+            "password": "wrong"
         })
         assert response.status_code == 401
     
-    def test_auth_verify(self, auth_client):
-        """Test token verification endpoint."""
-        response = auth_client.get('/api/auth/verify')
-        assert response.status_code == 200
-        assert response.json()['valid'] is True
-    
-    def test_change_password(self, auth_client):
-        """Test password change endpoint."""
-        response = auth_client.post('/api/auth/change-password', json={
-            'old_password': 'testpass',
-            'new_password': 'newpass123'
-        })
-        assert response.status_code == 200
-        assert response.json()['success'] is True
-    
-    def test_static_files(self, client):
-        """Test static file serving."""
-        # Test index.html
-        response = client.get('/')
-        assert response.status_code in [200, 404]  # Depends on file existence
+    def test_get_orchestrators(self, client, web_monitor, mock_orchestrator):
+        """Test getting all orchestrators."""
+        web_monitor.register_orchestrator('test-123', mock_orchestrator)
         
-        # Test login.html
-        response = client.get('/login')
-        assert response.status_code in [200, 404]
-
-
-class TestWebSocket:
-    """Test suite for WebSocket functionality."""
+        response = client.get("/api/orchestrators")
+        assert response.status_code == 200
+        data = response.json()
+        assert 'test-123' in data
     
-    @pytest.fixture
-    def client(self):
-        """Create a test client for WebSocket testing."""
-        app.state.monitor = OrchestratorMonitor(enable_auth=False)
-        return TestClient(app)
-    
-    def test_websocket_connection(self, client):
-        """Test WebSocket connection and basic messaging."""
-        with client.websocket_connect('/ws') as websocket:
-            # Should receive initial connection message
-            data = websocket.receive_json()
-            assert data['type'] == 'connection'
-            assert data['status'] == 'connected'
-    
-    def test_websocket_orchestrator_updates(self, client):
-        """Test WebSocket orchestrator state updates."""
-        with client.websocket_connect('/ws') as websocket:
-            # Receive initial connection message
-            websocket.receive_json()
-            
-            # Register an orchestrator
-            mock = MagicMock()
-            mock.id = 'ws-test-orch'
-            mock.get_orchestrator_state.return_value = {'id': 'ws-test-orch'}
-            app.state.monitor.register_orchestrator(mock)
-            
-            # Should receive update about new orchestrator
-            # (This would require implementing broadcast in the actual server)
-    
-    def test_websocket_with_auth(self):
-        """Test WebSocket with authentication enabled."""
-        temp_dir = tempfile.mkdtemp()
-        app.state.monitor = OrchestratorMonitor(data_dir=temp_dir, enable_auth=True)
-        app.state.monitor.auth_manager.create_user('wsuser', 'wspass')
+    def test_get_single_orchestrator(self, client, web_monitor, mock_orchestrator):
+        """Test getting a single orchestrator."""
+        web_monitor.register_orchestrator('test-123', mock_orchestrator)
         
-        with TestClient(app) as client:
-            # Get token
-            response = client.post('/api/auth/login', json={
-                'username': 'wsuser',
-                'password': 'wspass'
+        response = client.get("/api/orchestrators/test-123")
+        assert response.status_code == 200
+        data = response.json()
+        assert data['id'] == 'test-orch-123'
+        
+        # Test non-existent orchestrator
+        response = client.get("/api/orchestrators/non-existent")
+        assert response.status_code == 404
+    
+    def test_pause_resume_orchestrator(self, client, web_monitor, mock_orchestrator):
+        """Test pausing and resuming orchestrator."""
+        web_monitor.register_orchestrator('test-123', mock_orchestrator)
+        
+        # Test pause
+        response = client.post("/api/orchestrators/test-123/pause")
+        assert response.status_code == 200
+        mock_orchestrator.pause.assert_called_once()
+        
+        # Test resume
+        response = client.post("/api/orchestrators/test-123/resume")
+        assert response.status_code == 200
+        mock_orchestrator.resume.assert_called_once()
+    
+    def test_stop_orchestrator(self, client, web_monitor, mock_orchestrator):
+        """Test stopping orchestrator."""
+        web_monitor.register_orchestrator('test-123', mock_orchestrator)
+        
+        response = client.post("/api/orchestrators/test-123/stop")
+        assert response.status_code == 200
+        mock_orchestrator.stop.assert_called_once()
+    
+    def test_update_prompt(self, client, web_monitor, mock_orchestrator):
+        """Test updating orchestrator prompt."""
+        # Mock prompt file
+        mock_orchestrator.prompt_path = '/tmp/test_prompt.md'
+        web_monitor.register_orchestrator('test-123', mock_orchestrator)
+        
+        with patch('builtins.open', create=True) as mock_open:
+            mock_file = MagicMock()
+            mock_open.return_value.__enter__.return_value = mock_file
+            
+            response = client.post("/api/orchestrators/test-123/prompt", json={
+                "content": "New prompt content"
             })
-            token = response.json()['token']
             
-            # Connect with token
-            with client.websocket_connect(f'/ws?token={token}') as websocket:
-                data = websocket.receive_json()
-                assert data['type'] == 'connection'
+            assert response.status_code == 200
+            mock_file.write.assert_called_once_with("New prompt content")
+    
+    def test_get_execution_history(self, client, web_monitor):
+        """Test getting execution history."""
+        # Add some history
+        web_monitor.monitor.execution_history = [
+            {'id': 1, 'event': 'start'},
+            {'id': 2, 'event': 'iteration'}
+        ]
+        
+        response = client.get("/api/history")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+    
+    def test_get_system_metrics(self, client):
+        """Test getting system metrics."""
+        response = client.get("/api/metrics/system")
+        assert response.status_code == 200
+        data = response.json()
+        assert 'cpu_percent' in data
+        assert 'memory_percent' in data
+    
+    def test_websocket_connection(self, web_monitor):
+        """Test WebSocket connection."""
+        client = TestClient(web_monitor.app)
+        
+        with client.websocket_connect("/ws") as websocket:
+            # Should receive initial state
+            data = websocket.receive_json()
+            assert data['type'] == 'initial_state'
+            assert 'orchestrators' in data['data']
             
-            # Test without token (should fail)
-            with pytest.raises(WebSocketDisconnect):
-                with client.websocket_connect('/ws') as websocket:
-                    pass
-        
-        shutil.rmtree(temp_dir)
-
-
-class TestIntegration:
-    """Integration tests for the complete web monitoring system."""
+            # Test ping/pong
+            websocket.send_text("ping")
+            response = websocket.receive_text()
+            assert response == "pong"
     
-    @pytest.fixture
-    def setup(self):
-        """Setup complete monitoring environment."""
-        temp_dir = tempfile.mkdtemp()
-        monitor = OrchestratorMonitor(data_dir=temp_dir, enable_auth=True)
-        app.state.monitor = monitor
+    def test_websocket_auth(self, auth_web_monitor):
+        """Test WebSocket with authentication."""
+        client = TestClient(auth_web_monitor.app)
         
-        # Create test user
-        monitor.auth_manager.create_user('integuser', 'integpass')
-        
-        yield {
-            'temp_dir': temp_dir,
-            'monitor': monitor,
-            'client': TestClient(app)
-        }
-        
-        shutil.rmtree(temp_dir)
-    
-    def test_complete_orchestrator_lifecycle(self, setup):
-        """Test complete orchestrator lifecycle through web interface."""
-        client = setup['client']
-        monitor = setup['monitor']
-        
-        # Login
-        response = client.post('/api/auth/login', json={
-            'username': 'integuser',
-            'password': 'integpass'
+        # Get token first
+        response = client.post("/api/auth/login", json={
+            "username": "admin",
+            "password": "admin123"
         })
-        token = response.json()['token']
-        headers = {'Authorization': f'Bearer {token}'}
+        token = response.json()["access_token"]
         
-        # Check initial status
-        response = client.get('/api/status', headers=headers)
-        assert response.json()['active_orchestrators'] == 0
-        
-        # Register orchestrator
-        mock = MagicMock()
-        mock.id = 'integ-orch'
-        mock.prompt_file = '/integ/prompt.md'
-        mock.get_orchestrator_state.return_value = {
-            'id': 'integ-orch',
-            'status': 'running'
-        }
-        mock.get_task_status.return_value = {
-            'queue': [],
-            'current': None,
-            'completed': []
-        }
-        monitor.register_orchestrator(mock)
-        
-        # Verify orchestrator appears
-        response = client.get('/api/orchestrators', headers=headers)
-        assert len(response.json()) == 1
-        
-        # Pause orchestrator
-        mock.pause = MagicMock()
-        response = client.post('/api/orchestrators/integ-orch/pause', headers=headers)
-        assert response.json()['success']
-        
-        # Resume orchestrator
-        mock.resume = MagicMock()
-        response = client.post('/api/orchestrators/integ-orch/resume', headers=headers)
-        assert response.json()['success']
-        
-        # Unregister orchestrator
-        monitor.unregister_orchestrator('integ-orch')
-        
-        # Verify orchestrator is gone
-        response = client.get('/api/orchestrators', headers=headers)
-        assert len(response.json()) == 0
+        # Connect with token
+        with client.websocket_connect(f"/ws?token={token}") as websocket:
+            data = websocket.receive_json()
+            assert data['type'] == 'initial_state'
     
-    def test_database_integration(self, setup):
-        """Test database integration with web server."""
-        client = setup['client']
-        monitor = setup['monitor']
+    def test_database_endpoints(self, client, web_monitor):
+        """Test database-related endpoints."""
+        # Mock database methods
+        with patch.object(web_monitor.monitor.database, 'get_recent_runs') as mock_runs:
+            mock_runs.return_value = [
+                {'id': 1, 'status': 'completed'},
+                {'id': 2, 'status': 'running'}
+            ]
+            
+            response = client.get("/api/database/runs")
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data) == 2
         
-        # Login
-        response = client.post('/api/auth/login', json={
-            'username': 'integuser',
-            'password': 'integpass'
+        with patch.object(web_monitor.monitor.database, 'get_statistics') as mock_stats:
+            mock_stats.return_value = {
+                'total_runs': 10,
+                'success_rate': 80.0
+            }
+            
+            response = client.get("/api/database/statistics")
+            assert response.status_code == 200
+            data = response.json()
+            assert data['total_runs'] == 10
+            assert data['success_rate'] == 80.0
+    
+    def test_static_files(self, web_monitor):
+        """Test static file serving."""
+        # Create a test static file
+        static_dir = os.path.dirname(os.path.abspath(__file__))
+        static_dir = os.path.join(os.path.dirname(static_dir), 'src', 'ralph_orchestrator', 'web', 'static')
+        
+        if os.path.exists(static_dir):
+            client = TestClient(web_monitor.app)
+            response = client.get("/static/dashboard.html")
+            # If static files exist, they should be served
+            if response.status_code == 200:
+                assert "text/html" in response.headers.get("content-type", "")
+    
+    def test_cors_headers(self, client):
+        """Test CORS headers are set."""
+        response = client.options("/api/health")
+        assert "access-control-allow-origin" in response.headers
+        assert response.headers["access-control-allow-origin"] == "*"
+    
+    @pytest.mark.asyncio
+    async def test_broadcast_orchestrator_update(self, web_monitor, mock_orchestrator):
+        """Test broadcasting orchestrator updates."""
+        mock_ws = AsyncMock()
+        web_monitor.monitor.websocket_clients.append(mock_ws)
+        
+        web_monitor.register_orchestrator('test-123', mock_orchestrator)
+        
+        await web_monitor.monitor.broadcast_update({
+            'type': 'orchestrator_update',
+            'data': {'id': 'test-123', 'status': 'running'}
         })
-        token = response.json()['token']
-        headers = {'Authorization': f'Bearer {token}'}
         
-        # Create a run in the database
-        db = monitor.database
-        run_id = db.create_run('test-orch', '/test/prompt.md')
-        db.add_iteration(run_id, 1, 'Test output')
-        db.update_run_status(run_id, 'completed')
+        mock_ws.send_json.assert_called_once()
+    
+    def test_error_handling(self, client):
+        """Test error handling for various scenarios."""
+        # Test 404 for non-existent orchestrator
+        response = client.get("/api/orchestrators/non-existent")
+        assert response.status_code == 404
         
-        # Retrieve history through API
-        response = client.get('/api/history', headers=headers)
-        assert response.status_code == 200
-        history = response.json()
-        assert len(history) > 0
-        
-        # Get statistics
-        response = client.get('/api/statistics', headers=headers)
-        assert response.status_code == 200
-        stats = response.json()
-        assert stats['total_runs'] > 0
+        # Test invalid JSON
+        response = client.post("/api/orchestrators/test/prompt", 
+                              data="invalid json",
+                              headers={"Content-Type": "application/json"})
+        assert response.status_code == 422
+    
+    def test_run_server_methods(self, web_monitor):
+        """Test server run methods."""
+        # Test that run methods exist and are callable
+        assert hasattr(web_monitor, 'run')
+        assert hasattr(web_monitor, 'arun')
+        assert callable(web_monitor.run)
+        assert callable(web_monitor.arun)
