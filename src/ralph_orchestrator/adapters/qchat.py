@@ -6,7 +6,14 @@
 import subprocess
 import os
 import sys
-from typing import Optional
+import signal
+import threading
+import asyncio
+import select
+import time
+import fcntl
+from typing import Optional, Dict, Any
+from contextlib import contextmanager
 from .base import ToolAdapter, ToolResponse
 
 
@@ -16,6 +23,49 @@ class QChatAdapter(ToolAdapter):
     def __init__(self):
         self.command = "q"
         super().__init__("qchat")
+        self.current_process = None
+        self.shutdown_requested = False
+        
+        # Thread synchronization
+        self._lock = threading.Lock()
+        
+        # Store original signal handlers for cleanup
+        self._original_sigint = None
+        self._original_sigterm = None
+        
+        # Register signal handlers to propagate shutdown to subprocess
+        self._register_signal_handlers()
+    
+    def _register_signal_handlers(self):
+        """Register signal handlers and store originals."""
+        self._original_sigint = signal.signal(signal.SIGINT, self._signal_handler)
+        self._original_sigterm = signal.signal(signal.SIGTERM, self._signal_handler)
+    
+    def _restore_signal_handlers(self):
+        """Restore original signal handlers."""
+        if self._original_sigint is not None:
+            signal.signal(signal.SIGINT, self._original_sigint)
+        if self._original_sigterm is not None:
+            signal.signal(signal.SIGTERM, self._original_sigterm)
+    
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals and terminate running subprocess."""
+        with self._lock:
+            self.shutdown_requested = True
+            process = self.current_process
+        
+        if process and process.poll() is None:
+            print(f"\nReceived signal {signum}, terminating q chat process...", file=sys.stderr)
+            try:
+                process.terminate()
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                print("Force killing q chat process...", file=sys.stderr)
+                process.kill()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    pass
     
     def check_availability(self) -> bool:
         """Check if q CLI is available."""
@@ -82,22 +132,50 @@ class QChatAdapter(ToolAdapter):
                 stderr=subprocess.PIPE,
                 text=True,
                 cwd=os.getcwd(),
-                bufsize=1,  # Line buffered
+                bufsize=0,  # Unbuffered to prevent deadlock
                 universal_newlines=True
             )
+            
+            # Set process reference with lock
+            with self._lock:
+                self.current_process = process
+            
+            # Make pipes non-blocking to prevent deadlock
+            self._make_non_blocking(process.stdout)
+            self._make_non_blocking(process.stderr)
             
             # Collect output while streaming
             stdout_lines = []
             stderr_lines = []
             
-            # Stream output in real-time
-            import select
-            import time
-            
             timeout = kwargs.get("timeout", 600)  # Increase default to 10 minutes for complex tasks
             start_time = time.time()
             
             while True:
+                # Check for shutdown signal first with lock
+                with self._lock:
+                    shutdown = self.shutdown_requested
+                
+                if shutdown:
+                    if verbose:
+                        print("Shutdown requested, terminating q chat process...", file=sys.stderr)
+                    process.terminate()
+                    try:
+                        process.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=2)
+                    
+                    # Clean up process reference with lock
+                    with self._lock:
+                        self.current_process = None
+                    
+                    return ToolResponse(
+                        success=False,
+                        output="".join(stdout_lines),
+                        error="Process terminated due to shutdown signal"
+                    )
+                
                 # Check for timeout
                 elapsed_time = time.time() - start_time
                 
@@ -140,6 +218,10 @@ class QChatAdapter(ToolAdapter):
                         if verbose:
                             print(f"Warning: Could not read remaining output after timeout: {e}", file=sys.stderr)
                     
+                    # Clean up process reference with lock
+                    with self._lock:
+                        self.current_process = None
+                    
                     return ToolResponse(
                         success=False,
                         output="".join(stdout_lines),
@@ -164,25 +246,28 @@ class QChatAdapter(ToolAdapter):
                     
                     break
                 
-                # Use select to read available data without blocking
-                # Use shorter timeout to be more responsive to process completion and timeouts
-                remaining_timeout = max(0, timeout - elapsed_time)
-                select_timeout = min(0.1, remaining_timeout)
-                readable, _, _ = select.select([process.stdout, process.stderr], [], [], select_timeout)
-                
-                for stream in readable:
-                    if stream == process.stdout:
-                        line = stream.readline()
-                        if line:
-                            stdout_lines.append(line)
-                            if verbose:
-                                print(f"{line}", end='', file=sys.stderr)
-                    elif stream == process.stderr:
-                        line = stream.readline()
-                        if line:
-                            stderr_lines.append(line)
-                            if verbose:
-                                print(f"{line}", end='', file=sys.stderr)
+                # Read available data without blocking
+                try:
+                    # Read stdout
+                    stdout_data = self._read_available(process.stdout)
+                    if stdout_data:
+                        stdout_lines.append(stdout_data)
+                        if verbose:
+                            print(stdout_data, end='', file=sys.stderr)
+                    
+                    # Read stderr
+                    stderr_data = self._read_available(process.stderr)
+                    if stderr_data:
+                        stderr_lines.append(stderr_data)
+                        if verbose:
+                            print(stderr_data, end='', file=sys.stderr)
+                    
+                    # Small sleep to prevent busy waiting
+                    time.sleep(0.01)
+                    
+                except IOError:
+                    # Non-blocking read, ignore would-block errors
+                    pass
             
             # Get final return code
             returncode = process.poll()
@@ -191,6 +276,10 @@ class QChatAdapter(ToolAdapter):
                 print("-" * 60, file=sys.stderr)
                 print(f"Process completed with return code: {returncode}", file=sys.stderr)
                 print(f"Total execution time: {time.time() - start_time:.2f} seconds", file=sys.stderr)
+            
+            # Clean up process reference with lock
+            with self._lock:
+                self.current_process = None
             
             # Combine output
             full_stdout = "".join(stdout_lines)
@@ -222,8 +311,179 @@ class QChatAdapter(ToolAdapter):
                 error=str(e)
             )
     
+    def _make_non_blocking(self, pipe):
+        """Make a pipe non-blocking to prevent deadlock."""
+        if pipe:
+            try:
+                fd = pipe.fileno()
+                # Check if fd is a valid integer file descriptor
+                if isinstance(fd, int) and fd >= 0:
+                    flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+                    fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+            except (AttributeError, ValueError, OSError):
+                # In tests or when pipe doesn't support fileno()
+                pass
+    
+    def _read_available(self, pipe):
+        """Read available data from a non-blocking pipe."""
+        if not pipe:
+            return ""
+        
+        try:
+            # Try to read up to 4KB at a time
+            data = pipe.read(4096)
+            # Ensure we always return a string, not None
+            if data is None:
+                return ""
+            return data if data else ""
+        except (IOError, OSError):
+            # Would block or no data available
+            return ""
+    
+    async def aexecute(self, prompt: str, **kwargs) -> ToolResponse:
+        """Native async execution using asyncio subprocess."""
+        if not self.available:
+            return ToolResponse(
+                success=False,
+                output="",
+                error="q CLI is not available"
+            )
+        
+        try:
+            verbose = kwargs.get('verbose', True)
+            prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
+            timeout = kwargs.get('timeout', 600)
+            
+            # Enhance prompt with orchestration instructions
+            enhanced_prompt = self._enhance_prompt_with_instructions(prompt)
+            
+            # Construct effective prompt
+            effective_prompt = (
+                f"Please read and complete the task described in the file '{prompt_file}'. "
+                f"The current content is:\n\n{enhanced_prompt}\n\n"
+                f"Edit the file '{prompt_file}' directly to add your solution and progress updates."
+            )
+            
+            # Build command
+            cmd = [
+                self.command,
+                "chat",
+                "--no-interactive",
+                "--trust-all-tools",
+                effective_prompt
+            ]
+            
+            if verbose:
+                print(f"Starting q chat command (async)...", file=sys.stderr)
+                print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+                print("-" * 60, file=sys.stderr)
+            
+            # Create async subprocess
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=os.getcwd()
+            )
+            
+            # Set process reference with lock
+            with self._lock:
+                self.current_process = process
+            
+            try:
+                # Wait for completion with timeout
+                stdout_data, stderr_data = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=timeout
+                )
+                
+                # Decode output
+                stdout = stdout_data.decode('utf-8') if stdout_data else ""
+                stderr = stderr_data.decode('utf-8') if stderr_data else ""
+                
+                if verbose and stdout:
+                    print(stdout, file=sys.stderr)
+                if verbose and stderr:
+                    print(stderr, file=sys.stderr)
+                
+                # Check return code
+                if process.returncode == 0:
+                    return ToolResponse(
+                        success=True,
+                        output=stdout,
+                        metadata={
+                            "tool": "q chat",
+                            "verbose": verbose,
+                            "async": True
+                        }
+                    )
+                else:
+                    return ToolResponse(
+                        success=False,
+                        output=stdout,
+                        error=stderr or f"q chat failed with code {process.returncode}"
+                    )
+                
+            except asyncio.TimeoutError:
+                # Timeout occurred
+                if verbose:
+                    print(f"Async q chat timed out after {timeout} seconds", file=sys.stderr)
+                
+                # Try to terminate process
+                try:
+                    process.terminate()
+                    await asyncio.wait_for(process.wait(), timeout=3)
+                except (asyncio.TimeoutError, ProcessLookupError):
+                    try:
+                        process.kill()
+                        await process.wait()
+                    except ProcessLookupError:
+                        pass
+                
+                return ToolResponse(
+                    success=False,
+                    output="",
+                    error=f"q chat command timed out after {timeout} seconds"
+                )
+            
+            finally:
+                # Clean up process reference
+                with self._lock:
+                    self.current_process = None
+                    
+        except Exception as e:
+            if kwargs.get('verbose'):
+                print(f"Async execution error: {str(e)}", file=sys.stderr)
+            return ToolResponse(
+                success=False,
+                output="",
+                error=str(e)
+            )
+    
     def estimate_cost(self, prompt: str) -> float:
         """Q chat cost estimation (if applicable)."""
         # Q chat might be free or have different pricing
         # Return 0 for now, can be updated based on actual pricing
         return 0.0
+    
+    def __del__(self):
+        """Cleanup on deletion."""
+        # Restore original signal handlers
+        self._restore_signal_handlers()
+        
+        # Ensure any running process is terminated
+        with self._lock:
+            process = self.current_process
+        
+        if process:
+            try:
+                if hasattr(process, 'poll'):
+                    # Sync process
+                    if process.poll() is None:
+                        process.terminate()
+                        process.wait(timeout=1)
+                else:
+                    # Async process - can't do much in __del__
+                    pass
+            except:
+                pass

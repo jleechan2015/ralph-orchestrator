@@ -131,15 +131,37 @@ class TestQChatAdapter(unittest.TestCase):
         """Test successful Q Chat execution."""
         mock_run.return_value = MagicMock(returncode=0)  # availability check
         
-        # Mock the Popen process
+        # Mock the Popen process with proper file descriptor support
         mock_process = MagicMock()
-        mock_process.poll.return_value = 0  # Process completed successfully
-        mock_process.stdout.read.return_value = "Q Chat response"
-        mock_process.stderr.read.return_value = ""
+        # poll() should return None while running, then 0 when complete
+        # We need enough None values for the reading phase, then 0 for completion
+        # and finally 0 again for the returncode check
+        poll_returns = [None, None, 0, 0]  # Extra 0 for final returncode check
+        mock_process.poll.side_effect = poll_returns
+        
+        # Mock stdout and stderr with fileno() support
+        mock_stdout = MagicMock()
+        mock_stdout.fileno.return_value = 3  # Valid file descriptor
+        # The _read_available method will be called multiple times
+        # Return data on first read, then empty strings
+        # Also need a value for the final read when process completes
+        mock_stdout.read.side_effect = ["Q Chat response", "", "", "", ""]
+        
+        mock_stderr = MagicMock()
+        mock_stderr.fileno.return_value = 4  # Valid file descriptor
+        mock_stderr.read.side_effect = ["", "", "", "", ""]
+        
+        mock_process.stdout = mock_stdout
+        mock_process.stderr = mock_stderr
         mock_popen.return_value = mock_process
         
         adapter = QChatAdapter()
         response = adapter.execute("Test prompt")
+        
+        # Debug output to understand the failure
+        if not response.success:
+            print(f"Response failed with error: {response.error}")
+            print(f"Response output: {response.output}")
         
         self.assertTrue(response.success)
         self.assertEqual(response.output, "Q Chat response")
