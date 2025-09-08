@@ -103,6 +103,12 @@ class RalphOrchestrator:
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
         
+        # Task queue tracking
+        self.task_queue = []  # List of pending tasks extracted from prompt
+        self.current_task = None  # Currently executing task
+        self.completed_tasks = []  # List of completed tasks with results
+        self.task_start_time = None  # Start time of current task
+        
         # Create directories
         self.archive_dir.mkdir(parents=True, exist_ok=True)
         Path(".agent").mkdir(exist_ok=True)
@@ -165,6 +171,7 @@ class RalphOrchestrator:
         """Run the main orchestration loop asynchronously."""
         logger.info("Starting Ralph orchestration loop")
         start_time = time.time()
+        self._start_time = start_time  # Store for state retrieval
         
         while not self.stop_requested:
             # Check safety limits
@@ -223,6 +230,13 @@ class RalphOrchestrator:
         # Get the current prompt
         prompt = self.context_manager.get_prompt()
         
+        # Extract tasks from prompt if task queue is empty
+        if not self.task_queue and not self.current_task:
+            self._extract_tasks_from_prompt(prompt)
+        
+        # Update current task status
+        self._update_current_task('in_progress')
+        
         # Try primary adapter with prompt file path
         response = await self.current_adapter.aexecute(
             prompt, 
@@ -268,6 +282,13 @@ class RalphOrchestrator:
         # Update context if needed
         if response.success and len(response.output) > 1000:
             self.context_manager.update_context(response.output)
+        
+        # Update task status based on response
+        if response.success and self.current_task:
+            # Check if response indicates task completion
+            output_lower = response.output.lower() if response.output else ""
+            if any(word in output_lower for word in ['completed', 'finished', 'done', 'committed']):
+                self._update_current_task('completed')
         
         return response.success
     
@@ -393,3 +414,95 @@ class RalphOrchestrator:
         
         metrics_file.write_text(json.dumps(metrics_data, indent=2))
         logger.info(f"Metrics saved to {metrics_file}")
+    
+    def _extract_tasks_from_prompt(self, prompt: str):
+        """Extract tasks from the prompt text."""
+        import re
+        
+        # Look for task patterns in the prompt
+        # Common patterns: "- [ ] task", "1. task", "Task: description"
+        task_patterns = [
+            r'^\s*-\s*\[\s*\]\s*(.+)$',  # Checkbox tasks
+            r'^\s*\d+\.\s*(.+)$',  # Numbered tasks
+            r'^Task:\s*(.+)$',  # Task: format
+            r'^TODO:\s*(.+)$',  # TODO: format
+        ]
+        
+        lines = prompt.split('\n')
+        for line in lines:
+            for pattern in task_patterns:
+                match = re.match(pattern, line, re.MULTILINE)
+                if match:
+                    task = {
+                        'id': len(self.task_queue) + len(self.completed_tasks) + 1,
+                        'description': match.group(1).strip(),
+                        'status': 'pending',
+                        'created_at': datetime.now().isoformat(),
+                        'completed_at': None,
+                        'iteration': None
+                    }
+                    self.task_queue.append(task)
+                    break
+        
+        # If no tasks found, create a general task
+        if not self.task_queue and not self.completed_tasks:
+            self.task_queue.append({
+                'id': 1,
+                'description': 'Execute orchestrator instructions',
+                'status': 'pending',
+                'created_at': datetime.now().isoformat(),
+                'completed_at': None,
+                'iteration': None
+            })
+    
+    def _update_current_task(self, status: str = 'in_progress'):
+        """Update the current task status."""
+        if not self.current_task and self.task_queue:
+            self.current_task = self.task_queue.pop(0)
+            self.current_task['status'] = 'in_progress'
+            self.current_task['iteration'] = self.metrics.iterations
+            self.task_start_time = time.time()
+        elif self.current_task:
+            self.current_task['status'] = status
+            if status == 'completed':
+                self.current_task['completed_at'] = datetime.now().isoformat()
+                self.completed_tasks.append(self.current_task)
+                self.current_task = None
+                self.task_start_time = None
+    
+    def get_task_status(self) -> Dict[str, Any]:
+        """Get current task queue status."""
+        return {
+            'current_task': self.current_task,
+            'task_queue': self.task_queue,
+            'completed_tasks': self.completed_tasks[-10:],  # Last 10 completed
+            'queue_length': len(self.task_queue),
+            'completed_count': len(self.completed_tasks),
+            'current_iteration': self.metrics.iterations,
+            'task_duration': (time.time() - self.task_start_time) if self.task_start_time else None
+        }
+    
+    def get_orchestrator_state(self) -> Dict[str, Any]:
+        """Get comprehensive orchestrator state."""
+        return {
+            'id': id(self),  # Unique instance ID
+            'status': 'paused' if self.stop_requested else 'running',
+            'primary_tool': self.primary_tool,
+            'prompt_file': str(self.prompt_file),
+            'iteration': self.metrics.iterations,
+            'max_iterations': self.max_iterations,
+            'runtime': time.time() - getattr(self, '_start_time', time.time()),
+            'max_runtime': self.max_runtime,
+            'tasks': self.get_task_status(),
+            'metrics': {
+                'successful': self.metrics.successful_iterations,
+                'failed': self.metrics.failed_iterations,
+                'errors': self.metrics.errors,
+                'checkpoints': self.metrics.checkpoints,
+                'rollbacks': self.metrics.rollbacks
+            },
+            'cost': {
+                'total': self.cost_tracker.total_cost if self.cost_tracker else 0,
+                'limit': self.max_cost if self.track_costs else None
+            }
+        }

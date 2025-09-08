@@ -118,18 +118,26 @@ class OrchestratorMonitor:
             return None
         
         orchestrator = self.active_orchestrators[orchestrator_id]
-        return {
-            "id": orchestrator_id,
-            "status": "running" if not orchestrator.stop_requested else "stopping",
-            "metrics": orchestrator.metrics.to_dict(),
-            "cost": orchestrator.cost_tracker.get_summary() if orchestrator.cost_tracker else None,
-            "config": {
-                "primary_tool": orchestrator.primary_tool,
-                "max_iterations": orchestrator.max_iterations,
-                "max_runtime": orchestrator.max_runtime,
-                "prompt_file": str(orchestrator.prompt_file)
+        
+        # Try to use the new get_orchestrator_state method if it exists
+        if hasattr(orchestrator, 'get_orchestrator_state'):
+            state = orchestrator.get_orchestrator_state()
+            state['id'] = orchestrator_id  # Override with our ID
+            return state
+        else:
+            # Fallback to old method for compatibility
+            return {
+                "id": orchestrator_id,
+                "status": "running" if not orchestrator.stop_requested else "stopping",
+                "metrics": orchestrator.metrics.to_dict(),
+                "cost": orchestrator.cost_tracker.get_summary() if orchestrator.cost_tracker else None,
+                "config": {
+                    "primary_tool": orchestrator.primary_tool,
+                    "max_iterations": orchestrator.max_iterations,
+                    "max_runtime": orchestrator.max_runtime,
+                    "prompt_file": str(orchestrator.prompt_file)
+                }
             }
-        }
     
     def get_all_orchestrators_status(self) -> List[Dict[str, Any]]:
         """Get status of all orchestrators."""
@@ -248,6 +256,20 @@ class WebMonitor:
             if not status:
                 raise HTTPException(status_code=404, detail="Orchestrator not found")
             return status
+        
+        @self.app.get("/api/orchestrators/{orchestrator_id}/tasks")
+        async def get_orchestrator_tasks(orchestrator_id: str):
+            """Get task queue status for an orchestrator."""
+            if orchestrator_id not in self.monitor.active_orchestrators:
+                raise HTTPException(status_code=404, detail="Orchestrator not found")
+            
+            orchestrator = self.monitor.active_orchestrators[orchestrator_id]
+            task_status = orchestrator.get_task_status()
+            
+            return {
+                "orchestrator_id": orchestrator_id,
+                "tasks": task_status
+            }
         
         @self.app.post("/api/orchestrators/{orchestrator_id}/pause")
         async def pause_orchestrator(orchestrator_id: str):

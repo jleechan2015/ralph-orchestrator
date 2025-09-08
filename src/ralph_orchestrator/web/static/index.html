@@ -455,6 +455,132 @@
             font-size: 14px;
             color: var(--text-secondary);
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--surface);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .modal-close:hover {
+            color: var(--danger-color);
+        }
+
+        .task-list {
+            margin: 10px 0;
+        }
+
+        .task-item {
+            padding: 10px;
+            margin: 8px 0;
+            background-color: var(--background);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .task-item.current {
+            border-color: var(--warning-color);
+            background-color: rgba(237, 137, 54, 0.1);
+        }
+
+        .task-item.completed {
+            border-color: var(--success-color);
+            opacity: 0.7;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .task-id {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .task-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .task-status.pending {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .task-status.in_progress {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .task-status.completed {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .task-description {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -571,6 +697,19 @@
     <div class="notification" id="notification">
         <div class="notification-title" id="notificationTitle">Notification</div>
         <div class="notification-message" id="notificationMessage">Message</div>
+    </div>
+
+    <!-- Task Details Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Task Queue Details</h2>
+                <button class="modal-close" onclick="closeTaskModal()">&times;</button>
+            </div>
+            <div id="taskModalContent">
+                <!-- Content will be dynamically loaded here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -734,7 +873,14 @@
                 return;
             }
 
-            container.innerHTML = orchestrators.map(orch => `
+            container.innerHTML = orchestrators.map(orch => {
+                // Get task information if available
+                const tasks = orch.tasks || {};
+                const currentTask = tasks.current_task;
+                const queueLength = tasks.queue_length || 0;
+                const completedCount = tasks.completed_count || 0;
+                
+                return `
                 <div class="orchestrator-item">
                     <div class="orchestrator-header">
                         <span class="orchestrator-id">${orch.id}</span>
@@ -743,23 +889,43 @@
                     <div class="orchestrator-details">
                         <div class="detail-item">
                             <span class="detail-label">Tool</span>
-                            <span class="detail-value">${orch.config?.primary_tool || 'N/A'}</span>
+                            <span class="detail-value">${orch.primary_tool || orch.config?.primary_tool || 'N/A'}</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Iterations</span>
-                            <span class="detail-value">${orch.metrics?.iterations || 0} / ${orch.config?.max_iterations || '∞'}</span>
+                            <span class="detail-value">${orch.iteration || orch.metrics?.iterations || 0} / ${orch.max_iterations || orch.config?.max_iterations || '∞'}</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Runtime</span>
-                            <span class="detail-value">${formatDuration(orch.metrics?.total_runtime || 0)}</span>
+                            <span class="detail-value">${formatDuration(orch.runtime || orch.metrics?.total_runtime || 0)}</span>
                         </div>
                     </div>
+                    
+                    ${currentTask || queueLength > 0 ? `
+                    <div class="task-queue-section">
+                        <h4 style="margin: 10px 0 5px 0; color: var(--text-secondary); font-size: 12px;">Task Queue</h4>
+                        ${currentTask ? `
+                        <div class="current-task">
+                            <span class="task-status-badge" style="background: var(--warning-color); color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">IN PROGRESS</span>
+                            <span style="margin-left: 8px; font-size: 13px;">${currentTask.description}</span>
+                            ${tasks.task_duration ? `<span style="margin-left: 8px; color: var(--text-secondary); font-size: 11px;">(${Math.round(tasks.task_duration)}s)</span>` : ''}
+                        </div>
+                        ` : ''}
+                        <div style="margin-top: 5px; font-size: 12px; color: var(--text-secondary);">
+                            <span>Queue: ${queueLength}</span> | 
+                            <span>Completed: ${completedCount}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
                     <div style="margin-top: 10px;">
                         <button class="btn btn-warning" onclick="pauseOrchestrator('${orch.id}')">Pause</button>
                         <button class="btn btn-success" onclick="resumeOrchestrator('${orch.id}')">Resume</button>
+                        <button class="btn btn-secondary" onclick="showTaskDetails('${orch.id}')">Tasks</button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function addLog(level, message) {
@@ -897,6 +1063,115 @@
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 3000);
+        }
+
+        async function showTaskDetails(orchestratorId) {
+            try {
+                // Fetch task details from API
+                const response = await fetch(`/api/orchestrators/${orchestratorId}/tasks`);
+                const data = await response.json();
+                
+                const modal = document.getElementById('taskModal');
+                const content = document.getElementById('taskModalContent');
+                
+                // Build task content
+                const tasks = data.tasks;
+                let html = '';
+                
+                // Current task
+                if (tasks.current_task) {
+                    html += `
+                        <h3 style="margin-top: 0;">Current Task</h3>
+                        <div class="task-item current">
+                            <div class="task-header">
+                                <span class="task-id">Task #${tasks.current_task.id}</span>
+                                <span class="task-status in_progress">IN PROGRESS</span>
+                            </div>
+                            <div class="task-description">${tasks.current_task.description}</div>
+                            <div class="task-meta">
+                                Started: ${new Date(tasks.current_task.created_at).toLocaleString()}
+                                ${tasks.task_duration ? ` | Duration: ${Math.round(tasks.task_duration)}s` : ''}
+                                ${tasks.current_task.iteration ? ` | Iteration: ${tasks.current_task.iteration}` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Queued tasks
+                if (tasks.task_queue && tasks.task_queue.length > 0) {
+                    html += `
+                        <h3>Queued Tasks (${tasks.task_queue.length})</h3>
+                        <div class="task-list">
+                            ${tasks.task_queue.map(task => `
+                                <div class="task-item">
+                                    <div class="task-header">
+                                        <span class="task-id">Task #${task.id}</span>
+                                        <span class="task-status pending">PENDING</span>
+                                    </div>
+                                    <div class="task-description">${task.description}</div>
+                                    <div class="task-meta">
+                                        Created: ${new Date(task.created_at).toLocaleString()}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (!tasks.current_task) {
+                    html += '<p style="color: var(--text-secondary);">No tasks in queue</p>';
+                }
+                
+                // Completed tasks
+                if (tasks.completed_tasks && tasks.completed_tasks.length > 0) {
+                    html += `
+                        <h3>Recently Completed (${tasks.completed_count} total)</h3>
+                        <div class="task-list">
+                            ${tasks.completed_tasks.map(task => `
+                                <div class="task-item completed">
+                                    <div class="task-header">
+                                        <span class="task-id">Task #${task.id}</span>
+                                        <span class="task-status completed">COMPLETED</span>
+                                    </div>
+                                    <div class="task-description">${task.description}</div>
+                                    <div class="task-meta">
+                                        Completed: ${new Date(task.completed_at).toLocaleString()}
+                                        ${task.iteration ? ` | Iteration: ${task.iteration}` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                // Summary
+                html += `
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <strong>Summary:</strong> 
+                        ${tasks.current_task ? '1 in progress, ' : ''}
+                        ${tasks.queue_length} queued, 
+                        ${tasks.completed_count} completed
+                    </div>
+                `;
+                
+                content.innerHTML = html;
+                modal.classList.add('show');
+                
+            } catch (e) {
+                console.error('Error fetching task details:', e);
+                showNotification('Error', 'Failed to fetch task details');
+            }
+        }
+
+        function closeTaskModal() {
+            const modal = document.getElementById('taskModal');
+            modal.classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('taskModal');
+            if (event.target === modal) {
+                closeTaskModal();
+            }
         }
 
         // Initialize on page load
