@@ -7,7 +7,7 @@ Update the Ralph Orchestrator documentation to ensure accuracy, remove any hallu
 - [x] Audit all existing documentation files for accuracy against the codebase
 - [x] Identify and remove any hallucinated features or incorrect descriptions
 - [x] Update README.md to accurately reflect current functionality
-- [ ] Verify all code examples in documentation are working and accurate
+- [x] Verify all code examples in documentation are working and accurate
 - [ ] Ensure API documentation matches actual implementation
 - [ ] Update configuration documentation to match current options
 - [ ] Remove references to non-existent features or deprecated functionality
@@ -37,6 +37,19 @@ Update the Ralph Orchestrator documentation to ensure accuracy, remove any hallu
    - CLI creates: `.agent/prompts`, `.agent/checkpoints`, `.agent/metrics`, `.agent/plans`, `.agent/memory`
    - Orchestrator uses: `.ralph/` for metrics and `./prompts/archive` for archives
    - No unified workspace directory structure
+
+5. **Configuration Documentation Mismatch**:
+   - README shows extensive YAML configuration with many options not supported by actual code
+   - Documented config includes `enable_metrics`, `checkpoint_interval`, `retry_delay` etc.
+   - Actual RalphConfig class has different field names and missing options
+   - Generated ralph.yml by `init` command is much simpler than documented version
+
+6. **Code Examples Verification**:
+   - ✅ `ralph init` command works and creates expected files
+   - ✅ CLI help shows actual supported options match most documentation
+   - ✅ Basic commands like `ralph`, `ralph status`, `ralph clean` exist
+   - ❌ Configuration YAML example in README doesn't match actual supported options
+   - ❌ Some CLI options in documentation don't match actual CLI interface
 
 ## Technical Specifications
 
