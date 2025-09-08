@@ -1,0 +1,13 @@
+{
+  "iteration_count": 1,
+  "start_time": 1757291761.8929358,
+  "runtime": 0.00022339820861816406,
+  "errors": [],
+  "checkpoints": [],
+  "config": {
+    "agent": "claude",
+    "prompt_file": ".agent/test-prompts/debug-test.md",
+    "max_iterations": 1,
+    "max_runtime": 14400
+  }
+}

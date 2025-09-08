@@ -5,5 +5,3 @@ Write a Python function called `multiply` that takes two numbers and returns the
 Save it to a file called `multiply_result.py`.
 
 When complete, add TASK_COMPLETE to this file.
-
-TASK_COMPLETE

@@ -1,0 +1,13 @@
+{
+  "iteration_count": 1,
+  "start_time": 1757291769.0950341,
+  "runtime": 0.4362924098968506,
+  "errors": [],
+  "checkpoints": [],
+  "config": {
+    "agent": "auto",
+    "prompt_file": "test_manual_prompt.md",
+    "max_iterations": 1,
+    "max_runtime": 14400
+  }
+}
