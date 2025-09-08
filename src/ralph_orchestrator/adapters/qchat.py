@@ -47,13 +47,15 @@ class QChatAdapter(ToolAdapter):
             # Get the prompt file path from kwargs if available
             prompt_file = kwargs.get('prompt_file', 'PROMPT.md')
             
+            # Enhance prompt with orchestration instructions
+            enhanced_prompt = self._enhance_prompt_with_instructions(prompt)
+            
             # Construct a more effective prompt for q chat
-            # Tell it explicitly to edit the prompt file and add TASK_COMPLETE
+            # Tell it explicitly to edit the prompt file
             effective_prompt = (
                 f"Please read and complete the task described in the file '{prompt_file}'. "
-                f"The current content is:\n\n{prompt}\n\n"
-                f"Edit the file '{prompt_file}' directly to add your solution. "
-                f"When you have completed the task, add 'TASK_COMPLETE' on its own line at the end of the file."
+                f"The current content is:\n\n{enhanced_prompt}\n\n"
+                f"Edit the file '{prompt_file}' directly to add your solution and progress updates."
             )
             
             # Build command - q chat works with files by adding them to context

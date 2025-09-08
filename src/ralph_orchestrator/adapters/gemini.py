@@ -39,6 +39,9 @@ class GeminiAdapter(ToolAdapter):
             )
         
         try:
+            # Enhance prompt with orchestration instructions
+            enhanced_prompt = self._enhance_prompt_with_instructions(prompt)
+            
             # Build command
             cmd = [self.command]
             
@@ -46,8 +49,8 @@ class GeminiAdapter(ToolAdapter):
             if kwargs.get("model"):
                 cmd.extend(["--model", kwargs["model"]])
             
-            # Add the prompt
-            cmd.extend(["-p", prompt])
+            # Add the enhanced prompt
+            cmd.extend(["-p", enhanced_prompt])
             
             # Add output format if specified
             if kwargs.get("output_format"):

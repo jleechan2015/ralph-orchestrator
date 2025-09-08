@@ -99,16 +99,21 @@ class ClaudeAdapter(ToolAdapter):
             # Build options for Claude Code
             options_dict = {}
             
-            # Set system prompt
+            # Set system prompt with orchestration context
             system_prompt = kwargs.get('system_prompt', self._system_prompt)
             if not system_prompt:
-                # Create a default system prompt for file editing
+                # Create a default system prompt with orchestration context
+                enhanced_prompt = self._enhance_prompt_with_instructions(prompt)
                 system_prompt = (
                     f"You are helping complete a task. "
                     f"The task is described in the file '{prompt_file}'. "
-                    f"Please edit this file directly to add your solution. "
-                    f"When you have completed the task, add 'TASK_COMPLETE' on its own line at the end of the file."
+                    f"Please edit this file directly to add your solution and progress updates."
                 )
+                # Use the enhanced prompt as the main prompt
+                prompt = enhanced_prompt
+            else:
+                # If custom system prompt provided, still enhance the main prompt
+                prompt = self._enhance_prompt_with_instructions(prompt)
             options_dict['system_prompt'] = system_prompt
             
             # Set tool restrictions if provided

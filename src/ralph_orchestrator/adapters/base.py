@@ -92,5 +92,54 @@ class ToolAdapter(ABC):
         # Default implementation - subclasses can override
         return 0.0
     
+    def _enhance_prompt_with_instructions(self, prompt: str) -> str:
+        """Enhance prompt with orchestration context and instructions.
+        
+        Args:
+            prompt: The original prompt
+            
+        Returns:
+            Enhanced prompt with orchestration instructions
+        """
+        # Check if instructions already exist in the prompt
+        instruction_markers = [
+            "ORCHESTRATION CONTEXT:",
+            "IMPORTANT INSTRUCTIONS:",
+            "Implement only ONE small, focused task"
+        ]
+        
+        # If any marker exists, assume instructions are already present
+        for marker in instruction_markers:
+            if marker in prompt:
+                return prompt
+        
+        # Add orchestration context and instructions
+        orchestration_instructions = """
+ORCHESTRATION CONTEXT:
+You are running within the Ralph Orchestrator loop. This system will call you repeatedly 
+for multiple iterations until the overall task is complete. Each iteration is a separate 
+execution where you should make incremental progress.
+
+IMPORTANT INSTRUCTIONS:
+1. Implement only ONE small, focused task from this prompt per iteration.
+   - Each iteration is independent - focus on a single atomic change
+   - The orchestrator will handle calling you again for the next task
+   - Mark subtasks complete as you finish them
+2. Use the .agent/workspace/ directory for any temporary files or workspaces if not already instructed in the prompt.
+3. Follow this workflow for implementing features:
+   - Explore: Research and understand the codebase
+   - Plan: Design your implementation approach  
+   - Implement: Use Test-Driven Development (TDD) - write tests first, then code
+   - Commit: Commit your changes with clear messages
+4. When you complete a subtask, document it in the prompt file so the next iteration knows what's done.
+5. When ALL tasks are complete, add 'TASK_COMPLETE' on its own line at the end of the file.
+
+---
+ORIGINAL PROMPT:
+
+"""
+        
+        return orchestration_instructions + prompt
+    
     def __str__(self) -> str:
         return f"{self.name} (available: {self.available})"
