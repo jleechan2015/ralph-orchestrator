@@ -11,12 +11,19 @@ Create a command-line text processing utility with word/character/line count, te
   - `tests/` directory with `test_operations.py` and `test_cli.py`
   - `requirements.txt` - Dependencies (pytest, pytest-cov)
 
+### Iteration 2 - COMPLETED
+- ✅ Created operations module with counting functions using TDD approach
+- ✅ Implemented `count_lines()` - counts lines in text (handles empty lines)
+- ✅ Implemented `count_words()` - counts words (handles punctuation and whitespace)
+- ✅ Implemented `count_characters()` - counts all characters including spaces
+- ✅ Implemented `count_characters_no_spaces()` - counts non-whitespace characters
+- ✅ Wrote comprehensive pytest unit tests for counting operations (19 tests, all passing)
+
 ### Next Tasks
-- [ ] Create operations module with counting functions (word, character, line count)
 - [ ] Create text replacement functions in operations module
 - [ ] Create case conversion functions in operations module
 - [ ] Create main CLI module with argparse
 - [ ] Add comprehensive error handling
-- [ ] Write pytest unit tests for operations
+- [ ] Write pytest unit tests for remaining operations
 - [ ] Write integration tests for CLI
 - [ ] Ensure 90%+ test coverage
