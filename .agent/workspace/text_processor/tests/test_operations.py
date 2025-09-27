@@ -5,7 +5,9 @@ from text_processor.operations import (
     count_lines,
     count_words,
     count_characters,
-    count_characters_no_spaces
+    count_characters_no_spaces,
+    replace_text,
+    replace_text_regex
 )
 
 
@@ -89,3 +91,91 @@ class TestCountingOperations:
     def test_count_characters_no_spaces_with_tabs(self):
         """Test counting characters without spaces or tabs."""
         assert count_characters_no_spaces("Hello\tWorld") == 10
+
+
+class TestReplacementOperations:
+    """Test cases for text replacement operations."""
+
+    def test_replace_text_empty(self):
+        """Test replacing text in empty string."""
+        assert replace_text("", "old", "new") == ""
+
+    def test_replace_text_no_match(self):
+        """Test replacing text when pattern not found."""
+        assert replace_text("Hello World", "foo", "bar") == "Hello World"
+
+    def test_replace_text_single_match(self):
+        """Test replacing text with single match."""
+        assert replace_text("Hello World", "World", "Python") == "Hello Python"
+
+    def test_replace_text_multiple_matches(self):
+        """Test replacing text with multiple matches."""
+        text = "The cat in the hat"
+        assert replace_text(text, "the", "a") == "The cat in a hat"
+
+    def test_replace_text_case_sensitive(self):
+        """Test that replacement is case sensitive by default."""
+        text = "The the THE"
+        assert replace_text(text, "the", "a") == "The a THE"
+
+    def test_replace_text_case_insensitive(self):
+        """Test case insensitive replacement."""
+        text = "The the THE"
+        assert replace_text(text, "the", "a", case_sensitive=False) == "a a a"
+
+    def test_replace_text_with_count(self):
+        """Test replacing only first N occurrences."""
+        text = "one two one two one"
+        assert replace_text(text, "one", "three", count=2) == "three two three two one"
+
+    def test_replace_text_special_chars(self):
+        """Test replacing text with special characters."""
+        text = "Hello! How are you?"
+        assert replace_text(text, "!", "?") == "Hello? How are you?"
+
+    def test_replace_text_multiline(self):
+        """Test replacing text across multiple lines."""
+        text = "Hello World\nHello Python"
+        assert replace_text(text, "Hello", "Hi") == "Hi World\nHi Python"
+
+    def test_replace_text_regex_empty(self):
+        """Test regex replacement in empty string."""
+        assert replace_text_regex("", r"\d+", "X") == ""
+
+    def test_replace_text_regex_digits(self):
+        """Test replacing digits using regex."""
+        assert replace_text_regex("abc123def456", r"\d+", "X") == "abcXdefX"
+
+    def test_replace_text_regex_word_boundaries(self):
+        """Test replacing with word boundaries."""
+        text = "The cat in the cathedral"
+        assert replace_text_regex(text, r"\bcat\b", "dog") == "The dog in the cathedral"
+
+    def test_replace_text_regex_groups(self):
+        """Test regex replacement with capture groups."""
+        text = "John Smith, Jane Doe"
+        assert replace_text_regex(text, r"(\w+) (\w+)", r"\2, \1") == "Smith, John, Doe, Jane"
+
+    def test_replace_text_regex_multiline(self):
+        """Test regex replacement with multiline flag."""
+        text = "Start\nMiddle\nEnd"
+        assert replace_text_regex(text, r"^", "> ", multiline=True) == "> Start\n> Middle\n> End"
+
+    def test_replace_text_regex_case_insensitive(self):
+        """Test case insensitive regex replacement."""
+        text = "Hello HELLO hello"
+        assert replace_text_regex(text, r"hello", "hi", case_sensitive=False) == "hi hi hi"
+
+    def test_replace_text_regex_invalid_pattern(self):
+        """Test handling of invalid regex pattern."""
+        with pytest.raises(ValueError, match="Invalid regex pattern"):
+            replace_text_regex("test", r"[", "replacement")
+
+    def test_replace_text_empty_pattern(self):
+        """Test replacing empty pattern."""
+        assert replace_text("Hello World", "", "X") == "Hello World"
+
+    def test_replace_text_none_input(self):
+        """Test handling None input."""
+        with pytest.raises(TypeError):
+            replace_text(None, "old", "new")

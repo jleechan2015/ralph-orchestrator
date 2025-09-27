@@ -19,11 +19,23 @@ Create a command-line text processing utility with word/character/line count, te
 - ✅ Implemented `count_characters_no_spaces()` - counts non-whitespace characters
 - ✅ Wrote comprehensive pytest unit tests for counting operations (19 tests, all passing)
 
+### Iteration 3 - COMPLETED
+- ✅ Created text replacement functions using TDD approach
+- ✅ Implemented `replace_text()` - replaces substrings with options for:
+  - Case-sensitive/insensitive matching
+  - Limited replacement count
+  - Proper error handling for None input
+- ✅ Implemented `replace_text_regex()` - regex-based replacement with:
+  - Support for capture groups and backreferences
+  - Case-sensitive/insensitive matching
+  - Multiline mode support
+  - Proper error handling for invalid regex patterns
+- ✅ Wrote comprehensive pytest unit tests for replacement operations (18 tests, all passing)
+- ✅ Total tests: 37 (all passing)
+
 ### Next Tasks
-- [ ] Create text replacement functions in operations module
 - [ ] Create case conversion functions in operations module
 - [ ] Create main CLI module with argparse
 - [ ] Add comprehensive error handling
-- [ ] Write pytest unit tests for remaining operations
 - [ ] Write integration tests for CLI
 - [ ] Ensure 90%+ test coverage

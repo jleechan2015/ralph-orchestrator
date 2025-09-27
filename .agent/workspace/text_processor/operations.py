@@ -66,3 +66,77 @@ def count_characters_no_spaces(text: str) -> int:
     import re
     cleaned_text = re.sub(r'\s+', '', text)
     return len(cleaned_text)
+
+
+def replace_text(text: str, old: str, new: str,
+                 case_sensitive: bool = True, count: int = -1) -> str:
+    """Replace occurrences of a substring in text.
+
+    Args:
+        text: The input text to perform replacements in.
+        old: The substring to search for.
+        new: The substring to replace with.
+        case_sensitive: Whether to perform case-sensitive matching (default True).
+        count: Maximum number of replacements to make. -1 means replace all.
+
+    Returns:
+        The text with replacements made.
+
+    Raises:
+        TypeError: If text is None.
+    """
+    if text is None:
+        raise TypeError("text cannot be None")
+
+    if not old:
+        return text
+
+    if case_sensitive:
+        if count == -1:
+            return text.replace(old, new)
+        else:
+            return text.replace(old, new, count)
+    else:
+        # Case-insensitive replacement using regex
+        import re
+        pattern = re.escape(old)
+        flags = re.IGNORECASE
+        if count == -1:
+            return re.sub(pattern, new, text, flags=flags)
+        else:
+            return re.sub(pattern, new, text, count=count, flags=flags)
+
+
+def replace_text_regex(text: str, pattern: str, replacement: str,
+                       case_sensitive: bool = True,
+                       multiline: bool = False) -> str:
+    """Replace text using regular expressions.
+
+    Args:
+        text: The input text to perform replacements in.
+        pattern: The regular expression pattern to search for.
+        replacement: The replacement string (can include backreferences).
+        case_sensitive: Whether to perform case-sensitive matching (default True).
+        multiline: Whether to enable multiline mode (default False).
+
+    Returns:
+        The text with regex replacements made.
+
+    Raises:
+        ValueError: If the regex pattern is invalid.
+    """
+    import re
+
+    if not text:
+        return text
+
+    flags = 0
+    if not case_sensitive:
+        flags |= re.IGNORECASE
+    if multiline:
+        flags |= re.MULTILINE
+
+    try:
+        return re.sub(pattern, replacement, text, flags=flags)
+    except re.error as e:
+        raise ValueError(f"Invalid regex pattern: {e}")
