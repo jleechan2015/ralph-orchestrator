@@ -312,7 +312,21 @@ IMPORTANT:
         pass
     
     # Try specified agent first
-    if agent == "claude" or agent == "auto":
+    if agent == "codex" or agent == "auto":
+        try:
+            from .adapters.codex import CodexAdapter
+            adapter = CodexAdapter()
+            if adapter.available:
+                result = adapter.execute(generation_prompt)
+                if result.success:
+                    success = True
+                    # Check if the file was created
+                    return Path(output_file).exists()
+        except Exception as e:
+            if agent != "auto":
+                print(f"Codex adapter failed: {e}")
+
+    if not success and (agent == "claude" or agent == "auto"):
         try:
             adapter = ClaudeAdapter()
             if adapter.available:
@@ -428,9 +442,9 @@ Examples:
     )
     prompt_parser.add_argument(
         '-a', '--agent',
-        choices=['claude', 'c', 'gemini', 'g', 'qchat', 'q', 'auto'],
-        default='auto',
-        help='AI agent to use: claude/c, gemini/g, qchat/q, auto (default: auto)'
+        choices=['codex', 'claude', 'c', 'gemini', 'g', 'qchat', 'q', 'auto'],
+        default='codex',
+        help='AI agent to use: codex, claude/c, gemini/g, qchat/q, auto (default: codex)'
     )
     
     # Run command (default) - add all the run options
@@ -445,9 +459,9 @@ Examples:
         
         p.add_argument(
             "-a", "--agent",
-            choices=["claude", "q", "gemini", "auto"],
-            default="auto",
-            help="AI agent to use (default: auto)"
+            choices=["codex", "claude", "q", "gemini", "auto"],
+            default="codex",
+            help="AI agent to use (default: codex)"
         )
         
         p.add_argument(

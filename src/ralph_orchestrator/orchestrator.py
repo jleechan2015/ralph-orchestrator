@@ -93,10 +93,21 @@ class RalphOrchestrator:
         
         # Initialize adapters
         self.adapters = self._initialize_adapters()
-        self.current_adapter = self.adapters.get(primary_tool)
-        
+
+        # Map CLI agent names to adapter names
+        agent_mapping = {
+            'codex': 'codex',
+            'q': 'qchat',
+            'claude': 'claude',
+            'gemini': 'gemini'
+        }
+
+        adapter_name = agent_mapping.get(primary_tool, primary_tool)
+        self.current_adapter = self.adapters.get(adapter_name)
+
         if not self.current_adapter:
-            raise ValueError(f"Unknown tool: {primary_tool}")
+            available_agents = list(agent_mapping.keys())
+            raise ValueError(f"Unknown tool: {primary_tool}. Available agents: {available_agents}")
         
         # Signal handling
         self.stop_requested = False
@@ -120,6 +131,17 @@ class RalphOrchestrator:
         adapters = {}
         
         # Try to initialize each adapter
+        try:
+            from .adapters.codex import CodexAdapter
+            adapter = CodexAdapter(verbose=self.verbose)
+            if adapter.available:
+                adapters['codex'] = adapter
+                logger.info("Codex adapter initialized")
+            else:
+                logger.warning("Codex CLI not available")
+        except Exception as e:
+            logger.warning(f"Codex adapter error: {e}")
+
         try:
             adapter = ClaudeAdapter(verbose=self.verbose)
             if adapter.available:

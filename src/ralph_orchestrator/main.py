@@ -11,6 +11,8 @@ from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
+from .orchestrator import RalphOrchestrator
+
 
 # Configuration defaults
 DEFAULT_MAX_ITERATIONS = 100
@@ -126,9 +128,9 @@ def main():
     parser.add_argument(
         "--agent", "-a",
         type=str,
-        choices=["claude", "q", "gemini", "auto"],
-        default="auto",
-        help="AI agent to use (default: auto-detect)"
+        choices=["codex", "claude", "q", "gemini", "auto"],
+        default="codex",
+        help="AI agent to use (default: codex)"
     )
     
     parser.add_argument(
