@@ -588,7 +588,7 @@ Examples:
         # Collect remaining arguments for agent
         p.add_argument(
             "agent_args",
-            nargs=argparse.REMAINDER,
+            nargs='*',  # Changed from REMAINDER to * to make it optional
             help="Additional arguments to pass to the AI agent"
         )
     
@@ -672,7 +672,7 @@ Examples:
             max_prompt_size=args.max_prompt_size,
             allow_unsafe_paths=args.allow_unsafe_paths,
             strict_mode=args.strict,
-            agent_args=args.agent_args if hasattr(args, 'agent_args') else []
+            agent_args=getattr(args, 'agent_args', [])
         )
     
     if config.dry_run:
