@@ -47,6 +47,7 @@ logger = logging.getLogger('ralph-orchestrator')
 class AgentType(Enum):
     """Supported AI agent types"""
     CLAUDE = "claude"
+    CODEX = "codex"
     Q = "q"
     GEMINI = "gemini"
     AUTO = "auto"

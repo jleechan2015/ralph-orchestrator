@@ -622,6 +622,7 @@ Examples:
     agent_map = {
         "claude": AgentType.CLAUDE,
         "c": AgentType.CLAUDE,
+        "codex": AgentType.CODEX,
         "q": AgentType.Q,
         "qchat": AgentType.Q,
         "gemini": AgentType.GEMINI,

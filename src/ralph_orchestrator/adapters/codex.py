@@ -22,8 +22,7 @@ class CodexAdapter(ToolAdapter):
         super().__init__("codex")
         self._verbose = verbose
 
-    @property
-    def available(self) -> bool:
+    def check_availability(self) -> bool:
         """Check if codex CLI is available."""
         try:
             result = subprocess.run(
@@ -74,7 +73,7 @@ class CodexAdapter(ToolAdapter):
 
                 return ToolResponse(
                     success=success,
-                    content=output,
+                    output=output,
                     error=result.stderr if not success else None,
                     metadata={
                         "command": " ".join(cmd),
@@ -92,7 +91,7 @@ class CodexAdapter(ToolAdapter):
             logger.error(error_msg)
             return ToolResponse(
                 success=False,
-                content="",
+                output="",
                 error=error_msg,
                 metadata={"timeout": True}
             )
@@ -102,7 +101,7 @@ class CodexAdapter(ToolAdapter):
             logger.error(error_msg)
             return ToolResponse(
                 success=False,
-                content="",
+                output="",
                 error=error_msg,
                 metadata={"exception": str(e)}
             )
