@@ -132,9 +132,31 @@ Create a complete personal finance tracking application with web frontend, REST 
 **Lines of Code:** ~870 lines
 **Test Coverage:** 88% overall pass rate
 
+### Iteration 8 - Budget CRUD Endpoints ✅
+**Completed:** Implemented complete budget management system:
+- Created `app/services/budget_service.py` with BudgetService class handling all business logic
+- Implemented `app/routers/budgets.py` with full CRUD endpoints:
+  - POST /api/v1/budgets/ - Create budget
+  - GET /api/v1/budgets/ - List budgets with pagination and filtering
+  - GET /api/v1/budgets/{id} - Get specific budget with spending info
+  - PATCH /api/v1/budgets/{id} - Update budget
+  - DELETE /api/v1/budgets/{id} - Delete budget
+  - GET /api/v1/budgets/stats - Get budget statistics
+- Added BudgetWithSpending schema for tracking budget vs actual spending
+- Implemented spending calculation from transactions for each budget
+- Added user access control - users can only access their own budgets
+- Created comprehensive test suite (`tests/test_budgets.py`) with 8 tests
+- All budget tests passing (8/8) with proper validation and business logic
+- Integrated budget router into main application
+
+**Files Created:** 3 files (service, router, tests)
+**Files Modified:** 1 file (main.py)
+**Lines of Code:** ~890 lines
+**Test Coverage:** All budget endpoints fully tested and passing
+
 ## Next Tasks
-- Implement CRUD endpoints for budgets
 - Add WebSocket support for real-time updates
 - Create Docker configuration
 - Build React frontend with TypeScript
 - Implement CI/CD pipeline with GitHub Actions
+- Fix remaining test failures in transactions and categories
