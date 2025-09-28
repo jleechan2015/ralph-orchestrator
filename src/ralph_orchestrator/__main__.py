@@ -579,6 +579,12 @@ Examples:
             help="Allow potentially unsafe prompt paths"
         )
         
+        p.add_argument(
+            "--strict",
+            action="store_true",
+            help="Strict mode: never fallback to other agents when specified agent fails"
+        )
+        
         # Collect remaining arguments for agent
         p.add_argument(
             "agent_args",
@@ -665,6 +671,7 @@ Examples:
             enable_metrics=not args.no_metrics,
             max_prompt_size=args.max_prompt_size,
             allow_unsafe_paths=args.allow_unsafe_paths,
+            strict_mode=args.strict,
             agent_args=args.agent_args if hasattr(args, 'agent_args') else []
         )
     
@@ -722,7 +729,8 @@ Examples:
             track_costs=True,  # Enable cost tracking by default
             max_cost=config.max_cost,
             checkpoint_interval=config.checkpoint_interval,
-            verbose=config.verbose
+            verbose=config.verbose,
+            strict_mode=config.strict_mode
         )
         
         # Enable all tools for Claude adapter (including WebSearch)

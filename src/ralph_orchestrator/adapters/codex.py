@@ -45,7 +45,7 @@ class CodexAdapter(ToolAdapter):
 
             try:
                 # Build codex command
-                cmd = ["codex", "exec", "--yolo"]
+                cmd = ["codex", "exec", "--yolo", "--skip-git-repo-check"]
 
                 if self._verbose:
                     cmd.extend(["-c", "verbose=true"])

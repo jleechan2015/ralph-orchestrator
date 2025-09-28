@@ -45,7 +45,8 @@ class RalphOrchestrator:
         max_cost: float = 10.0,
         checkpoint_interval: int = 5,
         archive_dir: str = "./prompts/archive",
-        verbose: bool = False
+        verbose: bool = False,
+        strict_mode: bool = False
     ):
         """Initialize the orchestrator.
         
@@ -73,6 +74,7 @@ class RalphOrchestrator:
             self.checkpoint_interval = config.checkpoint_interval
             self.archive_dir = Path(config.archive_dir if hasattr(config, 'archive_dir') else archive_dir)
             self.verbose = config.verbose if hasattr(config, 'verbose') else False
+            self.strict_mode = config.strict_mode if hasattr(config, 'strict_mode') else False
         else:
             # Individual parameters
             self.prompt_file = Path(prompt_file_or_config if prompt_file_or_config else "PROMPT.md")
@@ -84,6 +86,7 @@ class RalphOrchestrator:
             self.checkpoint_interval = checkpoint_interval
             self.archive_dir = Path(archive_dir)
             self.verbose = verbose
+            self.strict_mode = strict_mode
         
         # Initialize components
         self.metrics = Metrics()
@@ -266,8 +269,8 @@ class RalphOrchestrator:
             verbose=self.verbose
         )
         
-        if not response.success and len(self.adapters) > 1:
-            # Try fallback adapters
+        if not response.success and len(self.adapters) > 1 and not self.strict_mode:
+            # Try fallback adapters (only if not in strict mode)
             for name, adapter in self.adapters.items():
                 if adapter != self.current_adapter:
                     logger.info(f"Falling back to {name}")
@@ -278,6 +281,9 @@ class RalphOrchestrator:
                     )
                     if response.success:
                         break
+        elif not response.success and self.strict_mode:
+            # In strict mode, log that we're not falling back
+            logger.warning(f"Strict mode enabled: not falling back from {self.primary_tool} despite failure")
         
         # Log the response output (already streamed to console if verbose)
         if response.success and response.output:

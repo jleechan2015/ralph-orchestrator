@@ -82,6 +82,7 @@ class RalphConfig:
     enable_metrics: bool = True
     max_prompt_size: int = DEFAULT_MAX_PROMPT_SIZE
     allow_unsafe_paths: bool = False
+    strict_mode: bool = False
     agent_args: List[str] = field(default_factory=list)
     adapters: Dict[str, AdapterConfig] = field(default_factory=dict)
     

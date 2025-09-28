@@ -187,7 +187,38 @@ Create a complete personal finance tracking application with web frontend, REST 
 **Lines of Code:** ~1100 lines
 **Test Coverage:** 87/89 tests passing overall
 
+### Iteration 11 - Docker Configuration ✅
+**Completed:** Implemented comprehensive Docker configuration for containerized deployment:
+- Created multi-stage `backend/Dockerfile` with production optimizations:
+  - Builder stage for dependencies with minimal build tools
+  - Production stage with non-root user, health checks, and security hardening
+  - Support for 4 workers in production mode
+- Created `backend/.dockerignore` to exclude unnecessary files from build context
+- Implemented `docker-compose.yml` with complete application stack:
+  - PostgreSQL database with health checks and persistent volumes
+  - FastAPI backend with auto-migrations and hot reload for development
+  - Frontend placeholder container ready for React app
+  - Network isolation and proper service dependencies
+- Created `docker-compose.override.yml` for development environment:
+  - Hot reload enabled for backend
+  - Volume mounts for live code updates
+  - Exposed database port for external tools
+- Created `docker-compose.prod.yml` for production deployment:
+  - Gunicorn with Uvicorn workers for production server
+  - Nginx reverse proxy configuration
+  - No source code mounting, built images only
+  - Proper restart policies and security settings
+- Added `.env.example` with all configuration variables documented
+- Created `Makefile` with convenient commands for Docker operations:
+  - Build, start, stop, restart services
+  - Access shell, view logs, run tests
+  - Database migrations and cleanup commands
+- Docker build tested successfully with proper dependency installation
+
+**Files Created:** 7 files
+**Lines of Code:** ~550 lines
+**Features:** Complete containerization with dev/prod configurations
+
 ## Next Tasks
-- Create Docker configuration
 - Build React frontend with TypeScript
 - Implement CI/CD pipeline with GitHub Actions
