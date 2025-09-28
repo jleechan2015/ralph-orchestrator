@@ -7,7 +7,14 @@ from text_processor.operations import (
     count_characters,
     count_characters_no_spaces,
     replace_text,
-    replace_text_regex
+    replace_text_regex,
+    to_uppercase,
+    to_lowercase,
+    to_title_case,
+    to_sentence_case,
+    swap_case,
+    to_camel_case,
+    to_snake_case
 )
 
 
@@ -179,3 +186,95 @@ class TestReplacementOperations:
         """Test handling None input."""
         with pytest.raises(TypeError):
             replace_text(None, "old", "new")
+
+
+class TestCaseConversionOperations:
+    """Test cases for case conversion operations."""
+
+    def test_to_uppercase(self):
+        """Test converting text to uppercase."""
+        assert to_uppercase("hello world") == "HELLO WORLD"
+        assert to_uppercase("Hello World!") == "HELLO WORLD!"
+        assert to_uppercase("123 abc") == "123 ABC"
+        assert to_uppercase("") == ""
+
+    def test_to_lowercase(self):
+        """Test converting text to lowercase."""
+        assert to_lowercase("HELLO WORLD") == "hello world"
+        assert to_lowercase("Hello World!") == "hello world!"
+        assert to_lowercase("123 ABC") == "123 abc"
+        assert to_lowercase("") == ""
+
+    def test_to_title_case(self):
+        """Test converting text to title case."""
+        assert to_title_case("hello world") == "Hello World"
+        assert to_title_case("HELLO WORLD") == "Hello World"
+        assert to_title_case("hello-world") == "Hello-World"
+        assert to_title_case("it's a test") == "It'S A Test"
+        assert to_title_case("") == ""
+
+    def test_to_sentence_case(self):
+        """Test converting text to sentence case."""
+        assert to_sentence_case("hello world") == "Hello world"
+        assert to_sentence_case("HELLO WORLD") == "Hello world"
+        assert to_sentence_case("hello. world") == "Hello. World"
+        assert to_sentence_case("hello! world? test.") == "Hello! World? Test."
+        assert to_sentence_case("") == ""
+        assert to_sentence_case("   hello world") == "   Hello world"
+
+    def test_swap_case(self):
+        """Test swapping case of characters."""
+        assert swap_case("Hello World") == "hELLO wORLD"
+        assert swap_case("ABC def 123") == "abc DEF 123"
+        assert swap_case("") == ""
+        assert swap_case("123!@#") == "123!@#"
+
+    def test_to_camel_case(self):
+        """Test converting text to camelCase."""
+        assert to_camel_case("hello world") == "helloWorld"
+        assert to_camel_case("Hello World") == "helloWorld"
+        assert to_camel_case("hello_world_test") == "helloWorldTest"
+        assert to_camel_case("hello-world-test") == "helloWorldTest"
+        assert to_camel_case("HELLO WORLD") == "helloWorld"
+        assert to_camel_case("") == ""
+        assert to_camel_case("single") == "single"
+
+    def test_to_snake_case(self):
+        """Test converting text to snake_case."""
+        assert to_snake_case("hello world") == "hello_world"
+        assert to_snake_case("Hello World") == "hello_world"
+        assert to_snake_case("helloWorld") == "hello_world"
+        assert to_snake_case("HelloWorld") == "hello_world"
+        assert to_snake_case("HELLO WORLD") == "hello_world"
+        assert to_snake_case("hello-world") == "hello_world"
+        assert to_snake_case("") == ""
+        assert to_snake_case("Single") == "single"
+
+    def test_case_conversion_with_special_chars(self):
+        """Test case conversion with special characters."""
+        text = "Hello@World#123"
+        assert to_uppercase(text) == "HELLO@WORLD#123"
+        assert to_lowercase(text) == "hello@world#123"
+        assert swap_case(text) == "hELLO@wORLD#123"
+
+    def test_case_conversion_with_unicode(self):
+        """Test case conversion with Unicode characters."""
+        text = "Café Müller"
+        assert to_uppercase(text) == "CAFÉ MÜLLER"
+        assert to_lowercase(text) == "café müller"
+        assert to_title_case(text) == "Café Müller"
+
+    def test_camel_case_edge_cases(self):
+        """Test camelCase conversion edge cases."""
+        assert to_camel_case("  hello  world  ") == "helloWorld"
+        assert to_camel_case("123 hello world") == "123HelloWorld"
+        assert to_camel_case("hello__world") == "helloWorld"
+        assert to_camel_case("Hello-World_Test") == "helloWorldTest"
+
+    def test_snake_case_edge_cases(self):
+        """Test snake_case conversion edge cases."""
+        assert to_snake_case("  hello  world  ") == "hello_world"
+        assert to_snake_case("123HelloWorld") == "123_hello_world"
+        assert to_snake_case("hello__world") == "hello_world"
+        assert to_snake_case("APIResponse") == "api_response"
+        assert to_snake_case("getHTTPResponseCode") == "get_http_response_code"

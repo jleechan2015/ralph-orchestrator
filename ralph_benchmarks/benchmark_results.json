@@ -1,0 +1,82 @@
+{
+  "benchmark_info": {
+    "suite_name": "Ralph Orchestrator Benchmark",
+    "total_execution_time_seconds": 4.19,
+    "total_execution_time_minutes": 0.07,
+    "projects_attempted": 3,
+    "projects_successful": 0,
+    "success_rate": 0.0
+  },
+  "system_info": {
+    "cpu_count": 14,
+    "memory_total_gb": 48.0,
+    "python_version": "3.11.10 (main, Aug 23 2025, 21:28:06) [Clang 17.0.0 (clang-1700.0.13.5)]",
+    "platform": "darwin",
+    "timestamp": "2025-09-27T14:54:15.894429"
+  },
+  "aggregate_metrics": {
+    "total_lines_of_code": 0,
+    "total_files_generated": 0,
+    "average_velocity_loc_per_minute": 0.0,
+    "projects_completed": 0,
+    "projects_failed": 3
+  },
+  "project_results": [
+    {
+      "project_id": "project_1_cli",
+      "project_name": "CLI Text Processor",
+      "success": false,
+      "execution_time_seconds": 1.43,
+      "execution_time_minutes": 0.02,
+      "return_code": 1,
+      "lines_of_code": 0,
+      "file_count": 0,
+      "file_extensions": {},
+      "implementation_velocity_loc_per_minute": 0.0,
+      "expected_loc_range": "150-300",
+      "stdout_lines": 0,
+      "stderr_lines": 11,
+      "output_directory": "ralph_benchmarks/project_1_cli",
+      "prompt_file": "PROMPT_project_1.md"
+    },
+    {
+      "project_id": "project_2_api",
+      "project_name": "FastAPI Task Management",
+      "success": false,
+      "execution_time_seconds": 1.4,
+      "execution_time_minutes": 0.02,
+      "return_code": 1,
+      "lines_of_code": 0,
+      "file_count": 0,
+      "file_extensions": {},
+      "implementation_velocity_loc_per_minute": 0.0,
+      "expected_loc_range": "800-1500",
+      "stdout_lines": 0,
+      "stderr_lines": 11,
+      "output_directory": "ralph_benchmarks/project_2_api",
+      "prompt_file": "PROMPT_project_2.md"
+    },
+    {
+      "project_id": "project_3_finance",
+      "project_name": "Full-Stack Finance Tracker",
+      "success": false,
+      "execution_time_seconds": 1.36,
+      "execution_time_minutes": 0.02,
+      "return_code": 1,
+      "lines_of_code": 0,
+      "file_count": 0,
+      "file_extensions": {},
+      "implementation_velocity_loc_per_minute": 0.0,
+      "expected_loc_range": "2000-4000",
+      "stdout_lines": 0,
+      "stderr_lines": 11,
+      "output_directory": "ralph_benchmarks/project_3_finance",
+      "prompt_file": "PROMPT_project_3.md"
+    }
+  ],
+  "comparison_baseline": {
+    "cerebras_time_ms": 997,
+    "cerebras_lines": 66,
+    "cerebras_project": "Project 2 (Task Management API)"
+  }
+}

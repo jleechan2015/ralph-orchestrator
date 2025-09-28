@@ -1,0 +1,7 @@
+=== Async Python lint started 2025-09-27T13:12:09.034327 ===
+$ /Users/jleechan/.pyenv/shims/pre-commit run --files .agent/workspace/text_processor/tests/test_cli.py
+An error has occurred: InvalidConfigError: 
+=====> .pre-commit-config.yaml is not a file
+Check the log at /Users/jleechan/.cache/pre-commit/pre-commit.log
+[exit code 1]
+=== Async Python lint finished with errors at 2025-09-27T13:12:09.753102 ===

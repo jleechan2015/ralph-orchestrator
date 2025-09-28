@@ -140,3 +140,152 @@ def replace_text_regex(text: str, pattern: str, replacement: str,
         return re.sub(pattern, replacement, text, flags=flags)
     except re.error as e:
         raise ValueError(f"Invalid regex pattern: {e}")
+
+
+def to_uppercase(text: str) -> str:
+    """Convert text to uppercase.
+
+    Args:
+        text: The input text to convert.
+
+    Returns:
+        The text converted to uppercase.
+    """
+    return text.upper()
+
+
+def to_lowercase(text: str) -> str:
+    """Convert text to lowercase.
+
+    Args:
+        text: The input text to convert.
+
+    Returns:
+        The text converted to lowercase.
+    """
+    return text.lower()
+
+
+def to_title_case(text: str) -> str:
+    """Convert text to title case (capitalize each word).
+
+    Args:
+        text: The input text to convert.
+
+    Returns:
+        The text converted to title case.
+    """
+    return text.title()
+
+
+def to_sentence_case(text: str) -> str:
+    """Convert text to sentence case (capitalize first letter of sentences).
+
+    Args:
+        text: The input text to convert.
+
+    Returns:
+        The text converted to sentence case.
+    """
+    if not text:
+        return text
+
+    import re
+
+    # First convert everything to lowercase
+    result = text.lower()
+
+    # Find the first non-whitespace character and capitalize it
+    result = re.sub(r'^(\s*)(\w)', lambda m: m.group(1) + m.group(2).upper(), result)
+
+    # Capitalize first letter after sentence endings (. ! ?)
+    result = re.sub(r'([.!?]\s+)([a-z])', lambda m: m.group(1) + m.group(2).upper(), result)
+
+    return result
+
+
+def swap_case(text: str) -> str:
+    """Swap the case of each character in text.
+
+    Args:
+        text: The input text to convert.
+
+    Returns:
+        The text with swapped case for each character.
+    """
+    return text.swapcase()
+
+
+def to_camel_case(text: str) -> str:
+    """Convert text to camelCase.
+
+    Args:
+        text: The input text to convert.
+
+    Returns:
+        The text converted to camelCase.
+    """
+    if not text:
+        return text
+
+    import re
+
+    # Replace multiple delimiters with single space
+    text = re.sub(r'[-_\s]+', ' ', text)
+
+    # Split into words
+    words = text.split()
+    if not words:
+        return ""
+
+    # Handle leading numbers
+    result = []
+    for i, word in enumerate(words):
+        if i == 0:
+            # First word - check if it starts with a number
+            if word and word[0].isdigit():
+                # Keep numbers as is, capitalize rest
+                j = 0
+                while j < len(word) and word[j].isdigit():
+                    j += 1
+                if j < len(word):
+                    result.append(word[:j] + word[j:].capitalize())
+                else:
+                    result.append(word)
+            else:
+                result.append(word.lower())
+        else:
+            result.append(word.capitalize())
+
+    return ''.join(result)
+
+
+def to_snake_case(text: str) -> str:
+    """Convert text to snake_case.
+
+    Args:
+        text: The input text to convert.
+
+    Returns:
+        The text converted to snake_case.
+    """
+    if not text:
+        return text
+
+    import re
+
+    # Handle camelCase and PascalCase by inserting underscores
+    # Before uppercase letters that follow lowercase letters
+    text = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', text)
+
+    # Handle consecutive uppercase letters (e.g., HTTPResponse -> HTTP_Response)
+    text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', text)
+
+    # Replace spaces, hyphens, and multiple underscores with single underscore
+    text = re.sub(r'[-\s]+', '_', text)
+
+    # Remove multiple underscores
+    text = re.sub(r'_+', '_', text)
+
+    # Strip leading/trailing underscores and convert to lowercase
+    return text.strip('_').lower()
